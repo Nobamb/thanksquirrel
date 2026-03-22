@@ -123,7 +123,7 @@ export default function SignupModal({ isOpen, onClose, onSuccess }) {
         console.error('Profile Insert Error:', dbError);
       }
 
-      if (onSuccess) onSuccess();
+      if (onSuccess) onSuccess('signup');
       else onClose();
     }
     setLoading(false);
