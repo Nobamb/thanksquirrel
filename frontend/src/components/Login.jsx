@@ -1,33 +1,28 @@
 import { useState, useEffect } from 'react';
 import { supabase, getImageUrl } from '../lib/supabase';
+import SpeechBubble from './SpeechBubble';
 import './Login.css';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  // 상태: hidden (처음 숨음) -> greeting (인사) -> peeking (눈가림)
-  const [squirrelState, setSquirrelState] = useState('hidden'); 
+  const [isFocused, setIsFocused] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     // 렌더링 후 약간의 딜레이를 두고 달램이가 올라오도록 설정
     const timer = setTimeout(() => {
-      setSquirrelState('greeting');
+      setIsReady(true);
     }, 500);
     return () => clearTimeout(timer);
   }, []);
 
-  // 입력값에 따른 다람쥐 상태 변경 (입력창에 값이 있으면 눈 가림, 비어있으면 인사)
-  useEffect(() => {
-    if (squirrelState === 'hidden') return;
-    
-    if (email.length > 0 || password.length > 0) {
-      setSquirrelState('peeking');
-    } else {
-      setSquirrelState('greeting');
-    }
-  }, [email, password]);
+  // 상태 판별: 처음엔 hidden, 이후 (포커스 혹은 입력값 있음) 조건 시 peeking, 아니면 greeting
+  const squirrelState = !isReady ? 'hidden' 
+    : (isFocused || email.length > 0 || password.length > 0) ? 'peeking' 
+    : 'greeting';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -58,6 +53,11 @@ export default function Login() {
     }
   };
 
+  const getDialogue = () => {
+    if (squirrelState === 'peeking') return "다람다람! 안보고있을거니 걱정안하셔도 됩니다람!";
+    return "다람다람! 누구신지 알려주시면 감사하겠습니다람!";
+  };
+
   return (
     <div 
       className="login-container"
@@ -65,6 +65,15 @@ export default function Login() {
     >
       <div className="login-box">
         <div className="squirrel-container">
+          <div style={{
+            position: 'absolute',
+            top: '-75px', 
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 20
+          }}>
+            <SpeechBubble text={getDialogue()} isVisible={isReady} />
+          </div>
           <img 
             src={getImageUrl(getImageName())} 
             alt="달램이" 
@@ -85,6 +94,8 @@ export default function Login() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
                 placeholder="이메일을 입력해주세요"
                 required
               />
@@ -97,6 +108,8 @@ export default function Login() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => setIsFocused(true)}
+                onBlur={() => setIsFocused(false)}
                 placeholder="비밀번호를 입력해주세요"
                 required
               />
