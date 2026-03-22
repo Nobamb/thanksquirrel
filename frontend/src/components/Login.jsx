@@ -12,8 +12,8 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  // 모달 토글 상태
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   useEffect(() => {
     // 렌더링 후 약간의 딜레이를 두고 달램이가 올라오도록 설정
@@ -23,9 +23,9 @@ export default function Login() {
     return () => clearTimeout(timer);
   }, []);
 
-  // 상태 판별: 처음엔 hidden, 이후 (포커스 혹은 입력값 있음) 조건 시 peeking, 아니면 greeting
+  // 상태 판별: 처음엔 hidden, 이후 (모달 켜짐 혹은 입력창 포커스/값 있음) 시 peeking, 아니면 greeting
   const squirrelState = !isReady ? 'hidden' 
-    : (isFocused || email.length > 0 || password.length > 0) ? 'peeking' 
+    : (isSignupModalOpen || isFocused || email.length > 0 || password.length > 0) ? 'peeking' 
     : 'greeting';
 
   const handleSubmit = async (e) => {
@@ -40,10 +40,16 @@ export default function Login() {
     });
 
     if (error) {
-      setError(error.message);
+      if (error.message.includes('Email not confirmed')) {
+        setError('이메일 인증이 필요합니다. 메일함을 확인해주세요.');
+      } else if (error.message.includes('Invalid login credentials')) {
+        setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+      } else {
+        setError(error.message);
+      }
     } else {
       console.log('Logged in!', data);
-      alert('로그인에 성공했습니다!');
+      setIsSuccess(true);
     }
     setLoading(false);
   };
@@ -68,86 +74,105 @@ export default function Login() {
         className="login-container"
         style={{ backgroundImage: `url(${getImageUrl('background.webp')})` }}
       >
-        <div className="login-box">
-          <div className="squirrel-container">
-            <div style={{
-              position: 'absolute',
-              top: '-75px', 
-              left: '50%',
-              transform: 'translateX(-50%)',
-              zIndex: 20
-            }}>
-              <SpeechBubble text={getDialogue()} isVisible={isReady} />
+        {isSuccess ? (
+          <div className="success-screen">
+            <div className="success-bubble">
+              <SpeechBubble text="다람다람! 환영합니다람!" isVisible={true} />
             </div>
             <img 
-              src={getImageUrl(getImageName())} 
-              alt="달램이" 
-              className={`squirrel-img ${squirrelState}`} 
+              src={getImageUrl('character-happy.webp')} 
+              alt="달램이 환영" 
+              className="squirrel-img success-anim" 
             />
           </div>
-          <div className="form-container">
-            <h2>환영합니다!</h2>
-            <p className="subtitle">늘감사합니다람</p>
-            
-            <form onSubmit={handleSubmit} className="login-form">
-              {error && <div className="error-message">{error}</div>}
-              
-              <div className="input-group">
-                <label htmlFor="email">이메일</label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
-                  placeholder="이메일을 입력해주세요"
-                  required
-                />
+        ) : (
+          <div className="login-box">
+            <div className="squirrel-container">
+              <div style={{
+                position: 'absolute',
+                top: '-75px', 
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 20
+              }}>
+                <SpeechBubble text={getDialogue()} isVisible={isReady} />
               </div>
-              
-              <div className="input-group">
-                <label htmlFor="password">비밀번호</label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onFocus={() => setIsFocused(true)}
-                  onBlur={() => setIsFocused(false)}
-                  placeholder="비밀번호를 입력해주세요"
-                  required
-                />
-              </div>
-              
-              <button type="submit" disabled={loading} className="login-button">
-                {loading ? '로딩 중...' : '로그인'}
-              </button>
-            </form>
-
-            <div className="extra-links">
-              <button type="button" className="text-link">비밀번호 찾기</button>
-              <span className="divider">|</span>
-              <button type="button" className="text-link" onClick={() => setIsSignupModalOpen(true)}>회원가입</button>
+              <img 
+                src={getImageUrl(getImageName())} 
+                alt="달램이" 
+                className={`squirrel-img ${squirrelState}`} 
+              />
             </div>
-            
-            <div className="sns-login">
-              <p>간편 로그인 (준비 중)</p>
-              <div className="sns-buttons">
-                <button className="sns-btn kakao">카카오</button>
-                <button className="sns-btn naver">네이버</button>
-                <button className="sns-btn google">구글</button>
+            <div className="form-container">
+              <h2>환영합니다!</h2>
+              <p className="subtitle">늘감사합니다람</p>
+              
+              <form onSubmit={handleSubmit} className="login-form">
+                {error && <div className="error-message">{error}</div>}
+                
+                <div className="input-group">
+                  <label htmlFor="email">이메일</label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    placeholder="이메일을 입력해주세요"
+                    required
+                  />
+                </div>
+                
+                <div className="input-group">
+                  <label htmlFor="password">비밀번호</label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    placeholder="비밀번호를 입력해주세요"
+                    required
+                  />
+                </div>
+                
+                <button type="submit" disabled={loading} className="login-button">
+                  {loading ? '로딩 중...' : '로그인'}
+                </button>
+              </form>
+
+              <div className="extra-links">
+                <button type="button" className="text-link">비밀번호 찾기</button>
+                <span className="divider">|</span>
+                <button type="button" className="text-link" onClick={() => setIsSignupModalOpen(true)}>회원가입</button>
+              </div>
+              
+              <div className="sns-login">
+                <p>간편 로그인 (준비 중)</p>
+                <div className="sns-buttons">
+                  <button className="sns-btn kakao">카카오</button>
+                  <button className="sns-btn naver">네이버</button>
+                  <button className="sns-btn google">구글</button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
       
       {/* 회원가입 모달 컴포넌트 */}
-      <SignupModal 
-        isOpen={isSignupModalOpen}
-        onClose={() => setIsSignupModalOpen(false)}
-      />
+      {!isSuccess && (
+        <SignupModal 
+          isOpen={isSignupModalOpen}
+          onClose={() => setIsSignupModalOpen(false)}
+          onSuccess={() => {
+            setIsSignupModalOpen(false);
+            setIsSuccess(true);
+          }}
+        />
+      )}
     </>
   );
 }
