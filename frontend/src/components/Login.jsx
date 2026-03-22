@@ -18,17 +18,16 @@ export default function Login() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleFocus = () => {
-    setSquirrelState('peeking');
-  };
-
-  const handleBlur = () => {
-    if (email || password) {
-        // 값이 남아있어도 일단 인사를 하거나, 아니면 상태를 유지할 수 있음
-        // 기획상 인풋 바깥을 클릭하면 다시 인사하는 모습으로 돌아옵니다.
+  // 입력값에 따른 다람쥐 상태 변경 (입력창에 값이 있으면 눈 가림, 비어있으면 인사)
+  useEffect(() => {
+    if (squirrelState === 'hidden') return;
+    
+    if (email.length > 0 || password.length > 0) {
+      setSquirrelState('peeking');
+    } else {
+      setSquirrelState('greeting');
     }
-    setSquirrelState('greeting');
-  };
+  }, [email, password]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -60,7 +59,10 @@ export default function Login() {
   };
 
   return (
-    <div className="login-container">
+    <div 
+      className="login-container"
+      style={{ backgroundImage: `url(${getImageUrl('background.webp')})` }}
+    >
       <div className="login-box">
         <div className="squirrel-container">
           <img 
@@ -83,8 +85,6 @@ export default function Login() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
                 placeholder="이메일을 입력해주세요"
                 required
               />
@@ -97,8 +97,6 @@ export default function Login() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                onFocus={handleFocus}
-                onBlur={handleBlur}
                 placeholder="비밀번호를 입력해주세요"
                 required
               />
@@ -108,6 +106,12 @@ export default function Login() {
               {loading ? '로딩 중...' : '로그인'}
             </button>
           </form>
+
+          <div className="extra-links">
+            <button type="button" className="text-link">비밀번호 찾기</button>
+            <span className="divider">|</span>
+            <button type="button" className="text-link">회원가입</button>
+          </div>
           
           <div className="sns-login">
             <p>간편 로그인 (준비 중)</p>
