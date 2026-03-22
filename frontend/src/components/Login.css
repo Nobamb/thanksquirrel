@@ -1,0 +1,202 @@
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #FDF9F1; /* 아늑한 메인 배경색 */
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.login-box {
+  width: 100%;
+  max-width: 360px;
+  position: relative;
+  z-index: 10;
+  margin-top: 100px; /* 다람쥐 공간 확보 */
+}
+
+/* 달램이 컨테이너 */
+.squirrel-container {
+  position: absolute;
+  top: -125px; /* 폼 위에 걸쳐지도록 조정 */
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  z-index: -1;
+  pointer-events: none; /* 클릭 방해 금지 */
+}
+
+/* 달램이 이미지 및 기본 애니메이션 */
+.squirrel-img {
+  width: 160px;
+  height: auto;
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+  transform-origin: bottom center;
+}
+
+/* 상태별 다람쥐 애니메이션 적용 */
+.squirrel-img.hidden {
+  transform: translateY(120px) scale(0.8);
+  opacity: 0;
+}
+
+.squirrel-img.greeting {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+.squirrel-img.peeking {
+  transform: translateY(15px) scale(0.95);
+  opacity: 1;
+}
+
+/* 폼 컨테이너 */
+.form-container {
+  background: white;
+  padding: 36px 30px;
+  border-radius: 28px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0,0,0,0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.form-container h2 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  color: #2c251d;
+  text-align: center;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  text-align: center;
+  color: #a49687;
+  margin: -14px 0 16px 0;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.input-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #7b6f61;
+  margin-left: 4px;
+}
+
+.input-group input {
+  padding: 15px 18px;
+  border-radius: 14px;
+  border: 1.5px solid #f0e9df;
+  background-color: #fdfdfc;
+  font-size: 15px;
+  color: #333;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.input-group input::placeholder {
+  color: #c4b9b0;
+}
+
+.input-group input:focus {
+  background-color: #fff;
+  border-color: #f38ba8; /* 분홍빛 강조색 */
+  box-shadow: 0 0 0 4px rgba(243, 139, 168, 0.1);
+}
+
+.login-button {
+  background-color: #f38ba8;
+  color: white;
+  border: none;
+  border-radius: 14px;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  margin-top: 10px;
+}
+
+.login-button:hover {
+  background-color: #eb7494;
+}
+
+.login-button:active {
+  transform: scale(0.97);
+}
+
+.login-button:disabled {
+  background-color: #ffcfdb;
+  cursor: not-allowed;
+}
+
+.error-message {
+  background-color: #fff0f0;
+  color: #e53935;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* SNS Login Area */
+.sns-login {
+  margin-top: 20px;
+  border-top: 1px solid #f0e9df;
+  padding-top: 20px;
+}
+
+.sns-login p {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: #b0a69a;
+  margin-bottom: 14px;
+}
+
+.sns-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.sns-btn {
+  flex: 1;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 0;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.sns-btn:hover {
+  opacity: 0.85;
+}
+
+.sns-btn:active {
+  transform: scale(0.95);
+}
+
+.sns-btn.kakao { background-color: #FEE500; color: #3A2929; }
+.sns-btn.naver { background-color: #03C75A; color: #fff; }
+.sns-btn.google { background-color: #ffffff; color: #333; border: 1px solid #e0d9cf; }
