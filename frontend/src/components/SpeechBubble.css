@@ -10,7 +10,9 @@
   line-height: 1.4;
   text-align: center;
   white-space: pre-wrap;
-  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition:
+    opacity 0.3s ease,
+    transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   opacity: 0;
   transform: translateY(10px) scale(0.95);
   pointer-events: none;
@@ -23,7 +25,7 @@
 }
 
 .speech-bubble::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -10px;
   left: 50%;
@@ -49,6 +51,7 @@
 .speech-text {
   flex: 1;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
@@ -64,10 +67,16 @@
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 0.1s, background-color 0.2s;
+  transition:
+    transform 0.1s,
+    background-color 0.2s;
   pointer-events: auto;
   margin-top: 8px;
 }
 
-.speech-button:hover { background-color: #eb7494; }
-.speech-button:active { transform: scale(0.95); }
+.speech-button:hover {
+  background-color: #eb7494;
+}
+.speech-button:active {
+  transform: scale(0.95);
+}
