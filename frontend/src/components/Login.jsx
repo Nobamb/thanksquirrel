@@ -100,6 +100,7 @@ export default function Login() {
                 text={getSuccessDialogue()} 
                 isVisible={true} 
                 variant="large"
+                className="large"
                 showButton={true}
               />
             </div>
