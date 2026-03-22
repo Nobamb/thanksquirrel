@@ -2,38 +2,72 @@
   position: relative;
   background: white;
   border-radius: 20px;
-  padding: 12px 18px;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08); /* 부드러운 그림자 */
-  font-size: 13px;
-  font-weight: 600;
-  color: #5c4f42;
-  text-align: center;
-  width: max-content;
-  max-width: 260px;
-  word-break: keep-all;
+  padding: 15px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #5c4e40;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   line-height: 1.4;
-  letter-spacing: -0.3px;
-  
-  /* 등장 애니메이션 설정 */
+  text-align: center;
+  white-space: pre-wrap;
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  pointer-events: none; /* 말풍선 클릭 방지 */
+  transform: translateY(10px) scale(0.95);
+  pointer-events: none;
 }
 
 .speech-bubble.visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translateY(0) scale(1);
+  pointer-events: auto; /* 버튼 등 내부 요소 클릭 가능하게 변경 */
 }
 
-/* 꼬리표 모양 */
 .speech-bubble::after {
   content: '';
   position: absolute;
-  bottom: -7px;
+  bottom: -10px;
   left: 50%;
   transform: translateX(-50%);
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-top: 8px solid white;
+  border-width: 10px 10px 0;
+  border-style: solid;
+  border-color: white transparent transparent transparent;
 }
+
+/* 새로 추가된 large 배경 및 크기 규칙 */
+.speech-bubble.large {
+  width: 300px;
+  height: 175px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 28px;
+  padding: 24px 20px;
+  box-sizing: border-box;
+}
+
+.speech-text {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  font-size: 15px;
+}
+
+.speech-button {
+  background-color: #f38ba8;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s, background-color 0.2s;
+  pointer-events: auto;
+  margin-top: 8px;
+}
+
+.speech-button:hover { background-color: #eb7494; }
+.speech-button:active { transform: scale(0.95); }
