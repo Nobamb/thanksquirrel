@@ -3,12 +3,13 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #FDF9F1; /* 아늑한 메인 배경색, 이미지가 없을 때 대비 */
+  background-color: #FDF9F1;
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   padding: 20px;
   box-sizing: border-box;
+  position: relative;
 }
 
 .login-box {
@@ -16,22 +17,20 @@
   max-width: 360px;
   position: relative;
   z-index: 10;
-  margin-top: 100px; /* 다람쥐 공간 확보 */
+  margin-top: 100px;
 }
 
-/* 달램이 컨테이너 */
 .squirrel-container {
   position: absolute;
-  top: -125px; /* 폼 위에 걸쳐지도록 조정 */
+  top: -125px;
   left: 0;
   right: 0;
   display: flex;
   justify-content: center;
   z-index: -1;
-  pointer-events: none; /* 클릭 방해 금지 */
+  pointer-events: none;
 }
 
-/* 달램이 이미지 및 기본 애니메이션 */
 .squirrel-img {
   width: 160px;
   height: auto;
@@ -39,7 +38,6 @@
   transform-origin: bottom center;
 }
 
-/* 상태별 다람쥐 애니메이션 적용 */
 .squirrel-img.hidden {
   transform: translateY(120px) scale(0.8);
   opacity: 0;
@@ -55,7 +53,6 @@
   opacity: 1;
 }
 
-/* 폼 컨테이너 */
 .form-container {
   background: white;
   padding: 36px 30px;
@@ -121,7 +118,7 @@
 
 .input-group input:focus {
   background-color: #fff;
-  border-color: #f38ba8; /* 분홍빛 강조색 */
+  border-color: #f38ba8;
   box-shadow: 0 0 0 4px rgba(243, 139, 168, 0.1);
 }
 
@@ -138,18 +135,9 @@
   margin-top: 10px;
 }
 
-.login-button:hover {
-  background-color: #eb7494;
-}
-
-.login-button:active {
-  transform: scale(0.97);
-}
-
-.login-button:disabled {
-  background-color: #ffcfdb;
-  cursor: not-allowed;
-}
+.login-button:hover { background-color: #eb7494; }
+.login-button:active { transform: scale(0.97); }
+.login-button:disabled { background-color: #ffcfdb; cursor: not-allowed; }
 
 .error-message {
   background-color: #fff0f0;
@@ -159,9 +147,9 @@
   font-size: 13px;
   font-weight: 500;
   text-align: center;
+  line-height: 1.4;
 }
 
-/* 추가 링크 (회원가입, 비밀번호 찾기) */
 .extra-links {
   display: flex;
   justify-content: center;
@@ -181,17 +169,9 @@
   transition: color 0.2s;
 }
 
-.text-link:hover {
-  color: #7b6f61;
-  text-decoration: underline;
-}
+.text-link:hover { color: #7b6f61; text-decoration: underline; }
+.divider { color: #e0d9cf; font-size: 12px; }
 
-.divider {
-  color: #e0d9cf;
-  font-size: 12px;
-}
-
-/* SNS Login Area */
 .sns-login {
   margin-top: 16px;
   border-top: 1px solid #f0e9df;
@@ -206,30 +186,66 @@
   margin-bottom: 14px;
 }
 
-.sns-buttons {
-  display: flex;
-  gap: 10px;
-}
-
+.sns-buttons { display: flex; gap: 10px; }
 .sns-btn {
-  flex: 1;
-  border: none;
-  border-radius: 12px;
-  padding: 14px 0;
-  font-weight: 700;
-  font-size: 14px;
-  cursor: pointer;
-  transition: opacity 0.2s, transform 0.1s;
+  flex: 1; border: none; border-radius: 12px;
+  padding: 14px 0; font-weight: 700; font-size: 14px;
+  cursor: pointer; transition: opacity 0.2s, transform 0.1s;
 }
-
-.sns-btn:hover {
-  opacity: 0.85;
-}
-
-.sns-btn:active {
-  transform: scale(0.95);
-}
-
+.sns-btn:hover { opacity: 0.85; }
+.sns-btn:active { transform: scale(0.95); }
 .sns-btn.kakao { background-color: #FEE500; color: #3A2929; }
 .sns-btn.naver { background-color: #03C75A; color: #fff; }
 .sns-btn.google { background-color: #ffffff; color: #333; border: 1px solid #e0d9cf; }
+
+/* --------------------------------- */
+/* SUCCESS SCREEN ANIMATIONS         */
+/* --------------------------------- */
+
+.success-screen {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  z-index: 50;
+  background-color: rgba(253, 249, 241, 0.45); /* 가벼운 반투명 오버레이 */
+}
+
+.success-bubble {
+  position: relative;
+  z-index: 20;
+  margin-bottom: 240px; /* 다람쥐를 위한 공간 확보 */
+  opacity: 0;
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  animation-delay: 0.2s;
+}
+
+/* 말풍선 사이즈 확대 조정 */
+.success-bubble .speech-bubble {
+  font-size: 18px;
+  padding: 16px 28px;
+  max-width: 340px;
+  border-radius: 24px;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.squirrel-img.success-anim {
+  position: absolute;
+  bottom: -400px; /* 완전히 숨겨진 상태에서 시작 */
+  left: 50%;
+  width: 320px; /* 크기 확대 */
+  margin-left: -160px; /* 가로 중앙 맞춤 */
+  animation: slideUpFromBottom 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  animation-delay: 0.4s;
+}
+
+@keyframes slideUpFromBottom {
+  to { bottom: -24px; } /* 상체가 보이는 위치까지 슬라이드 팝업 */
+}
