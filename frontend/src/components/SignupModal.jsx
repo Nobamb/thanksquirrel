@@ -9,7 +9,7 @@ const MBTI_OPTIONS = [
   'estj', 'esfj', 'enfj', 'entj'
 ];
 
-export default function SignupModal({ isOpen, onClose }) {
+export default function SignupModal({ isOpen, onClose, onSuccess }) {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -123,8 +123,8 @@ export default function SignupModal({ isOpen, onClose }) {
         console.error('Profile Insert Error:', dbError);
       }
 
-      alert('달램이와 함께하게 된 것을 환영합니다! 🎉');
-      onClose();
+      if (onSuccess) onSuccess();
+      else onClose();
     }
     setLoading(false);
   };
