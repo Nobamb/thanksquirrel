@@ -1,0 +1,39 @@
+.speech-bubble {
+  position: relative;
+  background: white;
+  border-radius: 20px;
+  padding: 12px 18px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08); /* 부드러운 그림자 */
+  font-size: 13px;
+  font-weight: 600;
+  color: #5c4f42;
+  text-align: center;
+  width: max-content;
+  max-width: 260px;
+  word-break: keep-all;
+  line-height: 1.4;
+  letter-spacing: -0.3px;
+  
+  /* 등장 애니메이션 설정 */
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none; /* 말풍선 클릭 방지 */
+}
+
+.speech-bubble.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 꼬리표 모양 */
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid white;
+}
