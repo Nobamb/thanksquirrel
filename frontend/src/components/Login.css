@@ -3,7 +3,10 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background-color: #FDF9F1; /* 아늑한 메인 배경색 */
+  background-color: #FDF9F1; /* 아늑한 메인 배경색, 이미지가 없을 때 대비 */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   padding: 20px;
   box-sizing: border-box;
 }
@@ -57,7 +60,7 @@
   background: white;
   padding: 36px 30px;
   border-radius: 28px;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0,0,0,0.03);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0,0,0,0.04);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -158,9 +161,39 @@
   text-align: center;
 }
 
+/* 추가 링크 (회원가입, 비밀번호 찾기) */
+.extra-links {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.text-link {
+  background: none;
+  border: none;
+  color: #a49687;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.text-link:hover {
+  color: #7b6f61;
+  text-decoration: underline;
+}
+
+.divider {
+  color: #e0d9cf;
+  font-size: 12px;
+}
+
 /* SNS Login Area */
 .sns-login {
-  margin-top: 20px;
+  margin-top: 16px;
   border-top: 1px solid #f0e9df;
   padding-top: 20px;
 }
