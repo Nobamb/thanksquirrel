@@ -13,7 +13,11 @@ export default function Login() {
   const [error, setError] = useState(null);
   
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  
+  // 성공 상태 관리: null | 'login' | 'signup'
+  const [isSuccess, setIsSuccess] = useState(null);
+  // 로그인 창 퇴장 애니메이션 상태 관리
+  const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
     // 렌더링 후 약간의 딜레이를 두고 달램이가 올라오도록 설정
@@ -23,10 +27,19 @@ export default function Login() {
     return () => clearTimeout(timer);
   }, []);
 
-  // 상태 판별: 처음엔 hidden, 이후 (모달 켜짐 혹은 입력창 포커스/값 있음) 시 peeking, 아니면 greeting
+  // 상태 판별: 처음엔 hidden, 이후 조건 시 peeking, 아니면 greeting
   const squirrelState = !isReady ? 'hidden' 
     : (isSignupModalOpen || isFocused || email.length > 0 || password.length > 0) ? 'peeking' 
     : 'greeting';
+
+  // 성공 시 0.5초 퇴장 애니메이션 후 상태 변경
+  const triggerSuccess = (type) => {
+    setIsExiting(true);
+    setTimeout(() => {
+      setIsSuccess(type);
+      setIsExiting(false);
+    }, 500);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -49,7 +62,7 @@ export default function Login() {
       }
     } else {
       console.log('Logged in!', data);
-      setIsSuccess(true);
+      triggerSuccess('login');
     }
     setLoading(false);
   };
@@ -68,6 +81,12 @@ export default function Login() {
     return "다람다람! 누구신지 알려주시면 감사하겠습니다람!";
   };
 
+  const getSuccessDialogue = () => {
+    if (isSuccess === 'login') return "다람다람! 우리 동네 사람이었다람!\n편히 쉬시면 좋겠습니다람!";
+    if (isSuccess === 'signup') return "다람다람! 처음이라 쉽지 않을텐데 용기내서 우리 동네 와주셔서 정말 감사합니다람!\n수고 많으셨을텐데 우선 우리 동네에서 푹 쉬고 있어주시면 좋겠습니다람!";
+    return "";
+  };
+
   return (
     <>
       <div 
@@ -76,17 +95,22 @@ export default function Login() {
       >
         {isSuccess ? (
           <div className="success-screen">
-            <div className="success-bubble">
-              <SpeechBubble text="다람다람! 환영합니다람!" isVisible={true} />
+            <div className="success-bubble-wrapper">
+              <SpeechBubble 
+                text={getSuccessDialogue()} 
+                isVisible={true} 
+                variant="large"
+                showButton={true}
+              />
             </div>
             <img 
-              src={getImageUrl('character-happy.webp')} 
+              src={getImageUrl('character-hello.webp')} 
               alt="달램이 환영" 
               className="squirrel-img success-anim" 
             />
           </div>
         ) : (
-          <div className="login-box">
+          <div className={`login-box ${isExiting ? 'slide-out-down' : ''}`}>
             <div className="squirrel-container">
               <div style={{
                 position: 'absolute',
@@ -95,7 +119,7 @@ export default function Login() {
                 transform: 'translateX(-50%)',
                 zIndex: 20
               }}>
-                <SpeechBubble text={getDialogue()} isVisible={isReady} />
+                <SpeechBubble text={getDialogue()} isVisible={isReady && !isExiting} />
               </div>
               <img 
                 src={getImageUrl(getImageName())} 
@@ -162,14 +186,14 @@ export default function Login() {
         )}
       </div>
       
-      {/* 회원가입 모달 컴포넌트 */}
-      {!isSuccess && (
+      {/* 회원가입 모달 */}
+      {!isSuccess && !isExiting && (
         <SignupModal 
           isOpen={isSignupModalOpen}
           onClose={() => setIsSignupModalOpen(false)}
-          onSuccess={() => {
+          onSuccess={(type) => {
             setIsSignupModalOpen(false);
-            setIsSuccess(true);
+            triggerSuccess(type); // 'signup' 파라미터 전달
           }}
         />
       )}
