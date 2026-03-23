@@ -20,6 +20,15 @@ export default function Login() {
   const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
+    // URL Hash에 에러가 있는지 확인 (OAuth 실패 시)
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const errorDesc = hashParams.get('error_description') || hashParams.get('error');
+    if (errorDesc) {
+      setError(`OAuth 에러: ${decodeURIComponent(errorDesc).replace(/\+/g, ' ')}`);
+      // URL에서 에러 파라미터 제거
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+    
     // 렌더링 후 약간의 딜레이를 두고 달램이가 올라오도록 설정
     const timer = setTimeout(() => {
       setIsReady(true);
@@ -31,59 +40,25 @@ export default function Login() {
         // INITIAL_SESSION: 이미 로그인되어 있는 상태로 페이지 로드
         if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
           const user = session.user;
-          const provider = user.app_metadata?.provider;
-          const providers = user.app_metadata?.providers || [];
+          const provider = user.app_metadata?.provider || 'unknown';
 
           console.log(`Auth State Change [${event}] - User:`, user);
 
-          // ─── 구글 로그인 처리 ───
-          if (provider === 'google' || providers.includes('google')) {
+          // 이메일 비밀번호 로그인(SignupModal 포함)은 별도의 흐름이 있으므로 생략,
+          // 하지만 외부 OAuth나 INITIAL_SESSION이면 DB 확인 및 삽입 수행
+          if (provider !== 'email' || event === 'INITIAL_SESSION') {
             const { data: existing } = await supabase
               .from('profiles').select('user_id').eq('user_id', user.id).single();
 
+            // 만약 profile에 데이터가 없다면 무조건 새로 생성
             if (!existing) {
-              const nickname = user.email?.split('@')[0] ?? '';
-              const { error: insertError } = await supabase.from('profiles').insert([{
-                user_id: user.id,
-                nickname,
-                gender: '비밀',
-                mbti: 'infp',
-                hobby: '',
-                specialty: '',
-                created_at: new Date().toISOString(),
-                last_check_in_at: new Date().toISOString(),
-                is_active: true,
-              }]);
-              if (insertError) console.error('Google profile insert error:', insertError);
-              triggerSuccess('signup');
-            } else {
-              triggerSuccess('login');
-            }
-            return;
-          }
+              const meta = user.user_metadata ?? {};
+              const nestedData = meta.response ?? meta.custom_claims ?? meta;
+              const emailStr = user.email || nestedData.email || '';
+              const nickname = nestedData.nickname ?? nestedData.name ?? emailStr.split('@')[0] ?? '기본_닉네임';
+              const gender = nestedData.gender ?? '비밀';
+              const avatar_url = nestedData.profile_image ?? nestedData.profile_image_url ?? null;
 
-          // ─── 네이버 로그인 처리 ───
-          const isNaver = provider === 'custom:naver' || provider === 'naver' || provider === 'custom' || providers.some(p => p?.includes('naver'));
-          
-          if (isNaver) {
-            const meta = user.user_metadata ?? {};
-            // 네이버는 response 객체 안에 한 번 더 감싸질 수 있음 (OAuth 설정에 따라 다름)
-            const naverData = meta.response ?? meta.custom_claims ?? meta;
-
-            const emailStr = user.email || naverData.email || '';
-            const nickname =
-              naverData.nickname ??
-              naverData.name ??
-              emailStr.split('@')[0] ??
-              'naver_user';
-            const gender = naverData.gender ?? '비밀';
-            const avatar_url = naverData.profile_image ?? naverData.profile_image_url ?? null;
-
-            const { data: existing } = await supabase
-              .from('profiles').select('user_id').eq('user_id', user.id).single();
-
-            if (!existing) {
-              // 신규 네이버 가입
               const { error: insertError } = await supabase.from('profiles').insert([{
                 user_id: user.id,
                 nickname,
@@ -96,24 +71,22 @@ export default function Login() {
                 last_check_in_at: new Date().toISOString(),
                 is_active: true,
               }]);
-              if (insertError) console.error('Naver profile insert error:', insertError);
+              
+              if (insertError) {
+                console.error('Profile insert error:', insertError);
+              }
               triggerSuccess('signup');
             } else {
-              // 기존 네이버 유저 — last_check_in_at 업데이트
+              // 기존 유저는 업데이트
               const { error: updateError } = await supabase.from('profiles')
                 .update({ last_check_in_at: new Date().toISOString() })
                 .eq('user_id', user.id);
-              if (updateError) console.error('Naver profile update error:', updateError);
+                
+              if (updateError) {
+                console.error('Profile update error:', updateError);
+              }
               triggerSuccess('login');
             }
-            return;
-          }
-          
-          // ─── 일반 이메일 혹은 인식되지 않은 다른 로그인 폴백 ───
-          if (provider !== 'email' || event === 'INITIAL_SESSION') {
-             if (provider !== 'email') console.warn('Fallback: Unhandled provider detected:', provider, user);
-             // 이미 로그인된 상태이거나, 기타 제공자라면 무조건 로비/성공창으로 전환
-             triggerSuccess('login');
           }
         }
       }
@@ -222,6 +195,13 @@ export default function Login() {
                 variant="large"
                 className="large"
                 showButton={true}
+                onButtonClick={async () => {
+                  await supabase.auth.signOut();
+                  // 세션을 비우고 초기 로그인 화면으로 돌아가기 (테스트용)
+                  setIsSuccess(null);
+                  setIsReady(false);
+                  setTimeout(() => setIsReady(true), 100);
+                }}
               />
             </div>
             <img 
