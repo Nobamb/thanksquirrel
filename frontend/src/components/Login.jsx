@@ -30,36 +30,69 @@ export default function Login() {
       async (event, session) => {
         if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
           const user = session.user;
-          // 신규 Google 가입자인지 확인 (providers에 'google'이 있을 때)
-          const isGoogle = user.app_metadata?.provider === 'google';
-          if (isGoogle) {
-            // profiles 테이블에 해당 유저 존재 여부 확인
+          const provider = user.app_metadata?.provider;
+
+          // ─── 구글 로그인 처리 ───
+          if (provider === 'google') {
             const { data: existing } = await supabase
-              .from('profiles')
-              .select('user_id')
-              .eq('user_id', user.id)
-              .single();
+              .from('profiles').select('user_id').eq('user_id', user.id).single();
 
             if (!existing) {
-              // 신규 구글 유저: 닉네임은 이메일 @ 앞부분으로 설정
               const nickname = user.email?.split('@')[0] ?? '';
-              await supabase.from('profiles').insert([
-                {
-                  user_id: user.id,
-                  nickname,
-                  gender: '비밀',
-                  mbti: 'infp',
-                  hobby: '',
-                  specialty: '',
-                  created_at: new Date().toISOString(),
-                  last_check_in_at: new Date().toISOString(),
-                  is_active: true,
-                },
-              ]);
-              // 신규 가입으로 처리
+              await supabase.from('profiles').insert([{
+                user_id: user.id,
+                nickname,
+                gender: '비밀',
+                mbti: 'infp',
+                hobby: '',
+                specialty: '',
+                created_at: new Date().toISOString(),
+                last_check_in_at: new Date().toISOString(),
+                is_active: true,
+              }]);
               triggerSuccess('signup');
             } else {
-              // 기존 구글 유저: 로그인으로 처리
+              triggerSuccess('login');
+            }
+          }
+
+          // ─── 네이버 로그인 처리 ───
+          if (provider === 'custom:naver') {
+            const meta = user.user_metadata ?? {};
+            // 네이버는 response 객체 안에 한 번 더 감싸질 수 있음
+            const naverData = meta.response ?? meta;
+
+            const nickname =
+              naverData.nickname ??
+              naverData.name ??
+              user.email?.split('@')[0] ??
+              '';
+            const gender = naverData.gender ?? '비밀';
+            const avatar_url = naverData.profile_image ?? naverData.profile_image_url ?? null;
+
+            const { data: existing } = await supabase
+              .from('profiles').select('user_id').eq('user_id', user.id).single();
+
+            if (!existing) {
+              // 신규 네이버 가입
+              await supabase.from('profiles').insert([{
+                user_id: user.id,
+                nickname,
+                gender,
+                avatar_url,
+                mbti: 'infp',
+                hobby: '',
+                specialty: '',
+                created_at: new Date().toISOString(),
+                last_check_in_at: new Date().toISOString(),
+                is_active: true,
+              }]);
+              triggerSuccess('signup');
+            } else {
+              // 기존 네이버 유저 — last_check_in_at 업데이트
+              await supabase.from('profiles')
+                .update({ last_check_in_at: new Date().toISOString() })
+                .eq('user_id', user.id);
               triggerSuccess('login');
             }
           }
@@ -92,13 +125,21 @@ export default function Login() {
     setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) setError('구글 로그인 중 오류가 발생했습니다.');
+  };
+
+  // 네이버 로그인 핸들러
+  const handleNaverLogin = async () => {
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'custom:naver',
       options: {
-        redirectTo: window.location.origin, // 현재 앱으로 리다이렉트
+        redirectTo: window.location.origin,
       },
     });
-    if (error) {
-      setError('구글 로그인 중 오류가 발생했습니다.');
-    }
+    if (error) setError('네이버 로그인 중 오류가 발생했습니다.');
   };
 
   const handleSubmit = async (e) => {
@@ -238,7 +279,7 @@ export default function Login() {
                 <p>간편 로그인</p>
                 <div className="sns-buttons">
                   <button className="sns-btn kakao">카카오</button>
-                  <button className="sns-btn naver">네이버</button>
+                  <button className="sns-btn naver" onClick={handleNaverLogin}>네이버</button>
                   <button className="sns-btn google" onClick={handleGoogleLogin}>구글</button>
                 </div>
               </div>
