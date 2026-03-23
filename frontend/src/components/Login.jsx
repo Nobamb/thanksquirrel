@@ -28,18 +28,22 @@ export default function Login() {
     // Google OAuth 콜백 감지: 로그인/가입 완료 시 처리
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if ((event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
+        // INITIAL_SESSION: 이미 로그인되어 있는 상태로 페이지 로드
+        if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
           const user = session.user;
           const provider = user.app_metadata?.provider;
+          const providers = user.app_metadata?.providers || [];
+
+          console.log(`Auth State Change [${event}] - User:`, user);
 
           // ─── 구글 로그인 처리 ───
-          if (provider === 'google') {
+          if (provider === 'google' || providers.includes('google')) {
             const { data: existing } = await supabase
               .from('profiles').select('user_id').eq('user_id', user.id).single();
 
             if (!existing) {
               const nickname = user.email?.split('@')[0] ?? '';
-              await supabase.from('profiles').insert([{
+              const { error: insertError } = await supabase.from('profiles').insert([{
                 user_id: user.id,
                 nickname,
                 gender: '비밀',
@@ -50,23 +54,28 @@ export default function Login() {
                 last_check_in_at: new Date().toISOString(),
                 is_active: true,
               }]);
+              if (insertError) console.error('Google profile insert error:', insertError);
               triggerSuccess('signup');
             } else {
               triggerSuccess('login');
             }
+            return;
           }
 
           // ─── 네이버 로그인 처리 ───
-          if (provider === 'custom:naver') {
+          const isNaver = provider === 'custom:naver' || provider === 'naver' || provider === 'custom' || providers.some(p => p?.includes('naver'));
+          
+          if (isNaver) {
             const meta = user.user_metadata ?? {};
-            // 네이버는 response 객체 안에 한 번 더 감싸질 수 있음
-            const naverData = meta.response ?? meta;
+            // 네이버는 response 객체 안에 한 번 더 감싸질 수 있음 (OAuth 설정에 따라 다름)
+            const naverData = meta.response ?? meta.custom_claims ?? meta;
 
+            const emailStr = user.email || naverData.email || '';
             const nickname =
               naverData.nickname ??
               naverData.name ??
-              user.email?.split('@')[0] ??
-              '';
+              emailStr.split('@')[0] ??
+              'naver_user';
             const gender = naverData.gender ?? '비밀';
             const avatar_url = naverData.profile_image ?? naverData.profile_image_url ?? null;
 
@@ -75,7 +84,7 @@ export default function Login() {
 
             if (!existing) {
               // 신규 네이버 가입
-              await supabase.from('profiles').insert([{
+              const { error: insertError } = await supabase.from('profiles').insert([{
                 user_id: user.id,
                 nickname,
                 gender,
@@ -87,14 +96,24 @@ export default function Login() {
                 last_check_in_at: new Date().toISOString(),
                 is_active: true,
               }]);
+              if (insertError) console.error('Naver profile insert error:', insertError);
               triggerSuccess('signup');
             } else {
               // 기존 네이버 유저 — last_check_in_at 업데이트
-              await supabase.from('profiles')
+              const { error: updateError } = await supabase.from('profiles')
                 .update({ last_check_in_at: new Date().toISOString() })
                 .eq('user_id', user.id);
+              if (updateError) console.error('Naver profile update error:', updateError);
               triggerSuccess('login');
             }
+            return;
+          }
+          
+          // ─── 일반 이메일 혹은 인식되지 않은 다른 로그인 폴백 ───
+          if (provider !== 'email' || event === 'INITIAL_SESSION') {
+             if (provider !== 'email') console.warn('Fallback: Unhandled provider detected:', provider, user);
+             // 이미 로그인된 상태이거나, 기타 제공자라면 무조건 로비/성공창으로 전환
+             triggerSuccess('login');
           }
         }
       }
