@@ -104,10 +104,11 @@ export default function SignupModal({ isOpen, onClose, onSuccess }) {
 
     if (authData.user) {
       const now = new Date().toISOString();
-      // 2. Insert into profiles with created_at, last_check_in_at, is_active
+      // 2. Insert into profiles with email, created_at, last_check_in_at, is_active
       const { error: dbError } = await supabase.from('profiles').insert([
         {
           user_id: authData.user.id,
+          email: formData.email,
           nickname: formData.nickname,
           gender: formData.gender,
           mbti: formData.mbti,
