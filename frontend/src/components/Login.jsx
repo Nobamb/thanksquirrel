@@ -74,10 +74,10 @@ export default function Login() {
 
               const meta = user.user_metadata ?? {};
               const nestedData = meta.response ?? meta.custom_claims ?? meta;
-              const emailStr = user.email || nestedData.email || '';
-              const nickname = nestedData.nickname ?? nestedData.name ?? emailStr.split('@')[0] ?? '기본_닉네임';
+              const emailStr = user.email || nestedData.account_email || nestedData.email || '';
+              const nickname = nestedData.profile_nickname ?? nestedData.nickname ?? nestedData.name ?? emailStr.split('@')[0] ?? '기본_닉네임';
               const gender = nestedData.gender ?? '비밀';
-              const avatar_url = nestedData.profile_image ?? nestedData.profile_image_url ?? null;
+              const avatar_url = nestedData.profile_image ?? nestedData.profile_image_url ?? nestedData.avatar_url ?? null;
 
               const { error: insertError } = await supabase.from('profiles').insert([{
                 user_id: user.id,
@@ -131,6 +131,18 @@ export default function Login() {
       setIsSuccess(type);
       setIsExiting(false);
     }, 500);
+  };
+
+  // 카카오 로그인 핸들러
+  const handleKakaoLogin = async () => {
+    setError(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'kakao',
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+    if (error) setError('카카오 로그인 중 오류가 발생했습니다.');
   };
 
   // 구글 로그인 핸들러
@@ -298,7 +310,7 @@ export default function Login() {
               <div className="sns-login">
                 <p>간편 로그인</p>
                 <div className="sns-buttons">
-                  <button className="sns-btn kakao">카카오</button>
+                  <button className="sns-btn kakao" onClick={handleKakaoLogin} type="button">카카오</button>
                   <button className="sns-btn naver" onClick={handleNaverLogin}>네이버</button>
                   <button className="sns-btn google" onClick={handleGoogleLogin}>구글</button>
                 </div>
