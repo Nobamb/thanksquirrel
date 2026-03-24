@@ -47,8 +47,10 @@ export default function Login() {
           // 이메일 비밀번호 로그인(SignupModal 포함)은 별도의 흐름이 있으므로 생략,
           // 하지만 외부 OAuth나 INITIAL_SESSION이면 DB 확인 및 삽입 수행
           if (provider !== 'email' || event === 'INITIAL_SESSION') {
-            const { data: existing } = await supabase
-              .from('profiles').select('user_id').eq('user_id', user.id).single();
+            const { data: existingData } = await supabase
+              .from('profiles').select('user_id').eq('user_id', user.id).limit(1);
+              
+            const existing = existingData && existingData.length > 0 ? existingData[0] : null;
 
             // 만약 profile에 데이터가 없다면 무조건 새로 생성
             if (!existing) {
