@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase, getImageUrl } from '../lib/supabase';
 import SpeechBubble from './SpeechBubble';
 import SignupModal from './SignupModal';
@@ -11,6 +11,7 @@ export default function Login() {
   const [isReady, setIsReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const authProcessedRef = useRef(false);
   
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   
@@ -37,8 +38,16 @@ export default function Login() {
     // Google OAuth 콜백 감지: 로그인/가입 완료 시 처리
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!session || event === 'SIGNED_OUT') {
+          authProcessedRef.current = false;
+          return;
+        }
+
         // INITIAL_SESSION: 이미 로그인되어 있는 상태로 페이지 로드
         if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'USER_UPDATED') && session) {
+          if (authProcessedRef.current) return;
+          authProcessedRef.current = true;
+
           const user = session.user;
           const provider = user.app_metadata?.provider || 'unknown';
 
@@ -54,6 +63,15 @@ export default function Login() {
 
             // 만약 profile에 데이터가 없다면 무조건 새로 생성
             if (!existing) {
+              if (provider === 'email') {
+                // 이메일 유저는 여기서 프로필을 자동 생성하지 않음 (SignupModal에서 생성).
+                // 데이터베이스(profiles)에 해당 유저가 없는데 로그인이 유지(session 존재)되어 있다면
+                // 관리자 페이지 등에서 유저를 임의로 삭제한 경우이므로 강제 로그아웃 처리
+                await supabase.auth.signOut();
+                authProcessedRef.current = false;
+                return;
+              }
+
               const meta = user.user_metadata ?? {};
               const nestedData = meta.response ?? meta.custom_claims ?? meta;
               const emailStr = user.email || nestedData.email || '';
@@ -63,6 +81,7 @@ export default function Login() {
 
               const { error: insertError } = await supabase.from('profiles').insert([{
                 user_id: user.id,
+                email: emailStr,
                 nickname,
                 gender,
                 avatar_url,
