@@ -49,6 +49,16 @@ export default function Login() {
           authProcessedRef.current = true;
 
           const user = session.user;
+          const sessionKey = `auth_processed_${user.id}`;
+          const processedType = sessionStorage.getItem(sessionKey);
+          
+          // 이미 현재 세션에서 애니메이션을 본 경우 건너뛰고 성공 화면 띄우기 (무한 렌더 루프 및 리로드 반복 방지)
+          if (processedType === 'login' || processedType === 'signup') {
+            setIsReady(true);
+            setIsSuccess(processedType);
+            return;
+          }
+
           const provider = user.app_metadata?.provider || 'unknown';
 
           console.log(`Auth State Change [${event}] - User:`, user);
@@ -96,6 +106,7 @@ export default function Login() {
               if (insertError) {
                 console.error('Profile insert error:', insertError);
               }
+              sessionStorage.setItem(`auth_processed_${user.id}`, 'signup');
               triggerSuccess('signup');
             } else {
               // 기존 유저는 업데이트
@@ -106,6 +117,7 @@ export default function Login() {
               if (updateError) {
                 console.error('Profile update error:', updateError);
               }
+              sessionStorage.setItem(`auth_processed_${user.id}`, 'login');
               triggerSuccess('login');
             }
           }
@@ -116,6 +128,7 @@ export default function Login() {
     return () => {
       clearTimeout(timer);
       subscription.unsubscribe();
+      authProcessedRef.current = false; // 리액트 Unmount시 상태 초기화(에러 방지용)
     };
   }, []);
 
@@ -188,6 +201,9 @@ export default function Login() {
       }
     } else {
       console.log('Logged in!', data);
+      if (data?.session?.user?.id) {
+        sessionStorage.setItem(`auth_processed_${data.session.user.id}`, 'login');
+      }
       triggerSuccess('login');
     }
     setLoading(false);
@@ -229,6 +245,10 @@ export default function Login() {
                 className="large"
                 showButton={true}
                 onButtonClick={async () => {
+                  const { data: { session } } = await supabase.auth.getSession();
+                  if (session?.user?.id) {
+                    sessionStorage.removeItem(`auth_processed_${session.user.id}`);
+                  }
                   await supabase.auth.signOut();
                   // 세션을 비우고 초기 로그인 화면으로 돌아가기 (테스트용)
                   setIsSuccess(null);
