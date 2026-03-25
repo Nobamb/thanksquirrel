@@ -169,7 +169,7 @@ export default function Login() {
       options: {
         redirectTo: window.location.origin,
         queryParams: {
-          prompt: 'consent select_account',
+          prompt: 'login select_account',
         },
       },
     });
