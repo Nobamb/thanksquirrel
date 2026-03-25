@@ -153,6 +153,9 @@ export default function Login() {
       provider: 'kakao',
       options: {
         redirectTo: window.location.origin,
+        queryParams: {
+          prompt: 'login',
+        },
       },
     });
     if (error) setError('카카오 로그인 중 오류가 발생했습니다.');
@@ -163,7 +166,12 @@ export default function Login() {
     setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin },
+      options: {
+        redirectTo: window.location.origin,
+        queryParams: {
+          prompt: 'consent select_account',
+        },
+      },
     });
     if (error) setError('구글 로그인 중 오류가 발생했습니다.');
   };
@@ -175,6 +183,9 @@ export default function Login() {
       provider: 'custom:naver',
       options: {
         redirectTo: window.location.origin,
+        queryParams: {
+          auth_type: 'reauthenticate',
+        },
       },
     });
     if (error) setError('네이버 로그인 중 오류가 발생했습니다.');
