@@ -151,7 +151,7 @@ export default function Login() {
 
         if (insertError) {
           console.error('Profile insert error:', insertError);
-          setError('회원 정보를 만드는 중 문제가 발생했습니다. 다시 로그인해 주세요.');
+          setError('놀러오는 도중 문제가 발생했습니다! 다시 로그인 부탁할게요!');
           await supabase.auth.signOut();
           authProcessedRef.current = false;
           return;
@@ -210,7 +210,7 @@ export default function Login() {
     });
 
     if (oauthError) {
-      setError('카카오 로그인 중 오류가 발생했습니다.');
+      setError('카카오 로그인 오류가 발생했어요!');
     }
   };
 
@@ -228,7 +228,7 @@ export default function Login() {
     });
 
     if (oauthError) {
-      setError('구글 로그인 중 오류가 발생했습니다.');
+      setError('구글 로그인 오류가 발생했어요!');
     }
   };
 
@@ -246,7 +246,7 @@ export default function Login() {
     });
 
     if (oauthError) {
-      setError('네이버 로그인 중 오류가 발생했습니다.');
+      setError('네이버 로그인 오류가 발생했어요!');
     }
   };
 
@@ -262,9 +262,9 @@ export default function Login() {
 
     if (loginError) {
       if (loginError.message.includes('Email not confirmed')) {
-        setError('이메일 인증이 필요합니다. 메일함에서 인증을 먼저 완료해 주세요.');
+        setError('이메일 인증이 필요해요! 메일함에서 인증을 먼저 완료해 주세요!');
       } else if (loginError.message.includes('Invalid login credentials')) {
-        setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+        setError('이메일 또는 비밀번호가 올바르지 않아요!');
       } else {
         setError(loginError.message);
       }
@@ -298,16 +298,16 @@ export default function Login() {
       return '다람다람! 안 보고 있으니까 걱정하지 않아도 됩니다람!';
     }
 
-    return '다람다람! 용기를 내어 와 주셔서 감사하다람!';
+    return '다람다람! 용기를 내어 와 주셔서 감사합니다람!';
   };
 
   const getSuccessDialogue = () => {
     if (isSuccess === 'login') {
-      return '다람다람! 다시 와 줘서 반갑다람!\n편히 쉬다 가면 좋겠습니다람!';
+      return '다람다람! 우리 동네 사람이었다람!\n편히 쉬시면 좋겠습니다람!';
     }
 
     if (isSuccess === 'signup') {
-      return '다람다람! 이메일 인증까지 마쳐 줘서 정말 고맙다람!\n이제 여기서 편하게 쉬어 가면 좋겠습니다람!';
+      return '다람다람! 처음이라 쉽지 않을텐데 용기내서 우리 동네 와주셔서 정말 감사합니다람!\n수고 많으셨을텐데 우선 우리 동네에서 푹 쉬고 있어주시면 좋겠습니다람!';
     }
 
     return '';
@@ -344,7 +344,7 @@ export default function Login() {
             </div>
             <img
               src={getImageUrl('character-hello.webp')}
-              alt="다람쥐 환영 캐릭터"
+              alt="다람쥐 환영 캐릭터, 달램이"
               className="squirrel-img success-anim"
             />
           </div>
@@ -371,7 +371,7 @@ export default function Login() {
 
             <div className="form-container">
               <h2>환영합니다</h2>
-              <p className="subtitle">감사다람쥐</p>
+              <p className="subtitle">늘감사합니다람</p>
 
               <form onSubmit={handleSubmit} className="login-form">
                 {error && <div className="error-message">{error}</div>}

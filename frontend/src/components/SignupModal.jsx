@@ -71,23 +71,23 @@ export default function SignupModal({ isOpen, onClose }) {
     const nextErrors = {};
 
     if (!formData.email) {
-      nextErrors.email = '이메일을 입력해 주세요.';
+      nextErrors.email = '이메일을 입력해 주세요!';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      nextErrors.email = '올바른 이메일 형식이 아닙니다.';
+      nextErrors.email = '이메일이 잘못되었어요!';
     }
 
     if (!validatePassword(formData.password)) {
-      nextErrors.password = '비밀번호는 영문, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.';
+      nextErrors.password = '비밀번호는 영문, 숫자, 특수문자를 포함한 8자 이상을 지켜주세요!';
     }
 
     if (!formData.passwordConfirm) {
-      nextErrors.passwordConfirm = '비밀번호 확인을 입력해 주세요.';
+      nextErrors.passwordConfirm = '비밀번호 확인을 입력해 주세요!';
     } else if (formData.password !== formData.passwordConfirm) {
-      nextErrors.passwordConfirm = '비밀번호와 비밀번호 확인이 일치하지 않습니다.';
+      nextErrors.passwordConfirm = '비밀번호와 비밀번호 확인이 일치하지 않아요!';
     }
 
     if (!formData.nickname.trim()) {
-      nextErrors.nickname = '별명을 입력해 주세요.';
+      nextErrors.nickname = '별명을 입력해 주세요!\n(기본적으로 이메일 앞부분이 별명이 된답니다!)';
     }
 
     setErrors(nextErrors);
@@ -125,7 +125,7 @@ export default function SignupModal({ isOpen, onClose }) {
 
     if (error) {
       if (error.message.includes('User already registered')) {
-        setSubmitError('이미 가입된 이메일입니다. 이미 인증을 마쳤다면 로그인해 주세요.');
+        setSubmitError('이미 가입을 하셨네요! 로그인을 시도해 보세요!');
       } else {
         setSubmitError(error.message);
       }
@@ -142,18 +142,18 @@ export default function SignupModal({ isOpen, onClose }) {
       <div className="signup-modal" onMouseDown={(event) => event.stopPropagation()}>
         <button className="close-btn" onClick={onClose} aria-label="닫기">×</button>
         <h2>회원가입</h2>
-        <p className="signup-subtitle">감사다람쥐에 오신 것을 환영해요!</p>
+        <p className="signup-subtitle">늘감사합니다람에 오신 것을 환영해요!</p>
 
         <div className="verification-notice">
-          이메일 인증을 완료해야 회원가입이 마무리되고 자동으로 로그인됩니다.
+          이메일 인증을 완료하면 가입할 수 있어요!
         </div>
 
         {submitError && <div className="error-message main-error">{submitError}</div>}
 
         {verificationEmail && (
           <div className="verification-success">
-            <strong>{verificationEmail}</strong> 주소로 인증 메일을 보냈어요.
-            메일의 인증 링크를 누르면 이 페이지로 돌아오면서 가입과 로그인이 자동으로 완료됩니다.
+            <strong>{verificationEmail}</strong> 주소로 달램이가 메일을 보냈어요!
+            메일의 인증 링크를 누르면 이 페이지로 돌아오면서 가입과 로그인이 자동으로 완료된답니다!
           </div>
         )}
 
@@ -265,7 +265,7 @@ export default function SignupModal({ isOpen, onClose }) {
           </div>
 
           <button type="submit" className="signup-submit-btn" disabled={loading}>
-            {loading ? '인증 메일 보내는 중...' : verificationEmail ? '이메일 인증 메일 다시 보내기' : '이메일 인증 메일 보내기'}
+            {loading ? '달램이가 메일 보내는 중...' : verificationEmail ? '달램이에게 이메일 인증 다시 부탁하기' : '달램이에게 이메일 인증 부탁하기'}
           </button>
         </form>
       </div>
