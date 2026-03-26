@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import './SignupModal.css';
 
@@ -6,54 +6,56 @@ const MBTI_OPTIONS = [
   'istj', 'isfj', 'infj', 'intj',
   'istp', 'isfp', 'infp', 'intp',
   'estp', 'esfp', 'enfp', 'entp',
-  'estj', 'esfj', 'enfj', 'entj'
+  'estj', 'esfj', 'enfj', 'entj',
 ];
 
-export default function SignupModal({ isOpen, onClose, onSuccess }) {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-    passwordConfirm: '',
-    nickname: '',
-    gender: 'secret',
-    mbti: 'infp',
-    hobby: '',
-    specialty: ''
-  });
-  
+const INITIAL_FORM_DATA = {
+  email: '',
+  password: '',
+  passwordConfirm: '',
+  nickname: '',
+  gender: 'secret',
+  mbti: 'infp',
+  hobby: '',
+  specialty: '',
+};
+
+export default function SignupModal({ isOpen, onClose }) {
+  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
   const [errors, setErrors] = useState({});
   const [isNicknameManuallyEdited, setIsNicknameManuallyEdited] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [verificationEmail, setVerificationEmail] = useState('');
 
   useEffect(() => {
     if (!isOpen) {
-      setFormData({
-        email: '', password: '', passwordConfirm: '', nickname: '', 
-        gender: 'secret', mbti: 'infp', hobby: '', specialty: ''
-      });
+      setFormData(INITIAL_FORM_DATA);
       setErrors({});
       setIsNicknameManuallyEdited(false);
+      setLoading(false);
       setSubmitError(null);
+      setVerificationEmail('');
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const validatePassword = (pw) => {
+  const validatePassword = (password) => {
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*()[\]{}<>?,./~+\-_=|\\]).{8,}$/;
-    return passwordRegex.test(pw);
+    return passwordRegex.test(password);
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    
-    setFormData(prev => {
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+
+    setFormData((prev) => {
       const nextData = { ...prev, [name]: value };
-      
+
       if (name === 'email' && !isNicknameManuallyEdited) {
         nextData.nickname = value.split('@')[0] || '';
       }
+
       return nextData;
     });
 
@@ -61,84 +63,100 @@ export default function SignupModal({ isOpen, onClose, onSuccess }) {
       setIsNicknameManuallyEdited(true);
     }
 
-    setErrors(prev => ({ ...prev, [name]: null }));
+    setErrors((prev) => ({ ...prev, [name]: null }));
+    setSubmitError(null);
   };
 
   const validate = () => {
-    const newErrors = {};
-    if (!formData.email) newErrors.email = '이메일을 입력해주세요.';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = '올바른 이메일 형식이 아닙니다.';
-    
-    if (!validatePassword(formData.password)) {
-      newErrors.password = '비밀번호는 문구, 숫자, 특수문자 조합 8자 이상이어야 합니다.';
-    }
-    
-    if (formData.password !== formData.passwordConfirm) {
-      newErrors.passwordConfirm = '비밀번호와 비밀번호 확인이 일치하지 않습니다.';
-    }
-    
-    if (!formData.nickname) newErrors.nickname = '별명을 입력해주세요.';
+    const nextErrors = {};
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (!formData.email) {
+      nextErrors.email = '이메일을 입력해 주세요.';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      nextErrors.email = '올바른 이메일 형식이 아닙니다.';
+    }
+
+    if (!validatePassword(formData.password)) {
+      nextErrors.password = '비밀번호는 영문, 숫자, 특수문자를 포함한 8자 이상이어야 합니다.';
+    }
+
+    if (!formData.passwordConfirm) {
+      nextErrors.passwordConfirm = '비밀번호 확인을 입력해 주세요.';
+    } else if (formData.password !== formData.passwordConfirm) {
+      nextErrors.passwordConfirm = '비밀번호와 비밀번호 확인이 일치하지 않습니다.';
+    }
+
+    if (!formData.nickname.trim()) {
+      nextErrors.nickname = '별명을 입력해 주세요.';
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const buildSignupMetadata = () => ({
+    signup_provider: 'email',
+    nickname: formData.nickname.trim(),
+    gender: formData.gender,
+    mbti: formData.mbti,
+    hobby: formData.hobby.trim(),
+    specialty: formData.specialty.trim(),
+  });
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
     if (!validate()) return;
 
     setLoading(true);
     setSubmitError(null);
 
-    // 1. Supabase Auth Signup
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password
+    const email = formData.email.trim().toLowerCase();
+    const redirectTo = `${window.location.origin}${window.location.pathname}`;
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password: formData.password,
+      options: {
+        emailRedirectTo: redirectTo,
+        data: buildSignupMetadata(),
+      },
     });
 
-    if (authError) {
-      setSubmitError(authError.message);
+    if (error) {
+      if (error.message.includes('User already registered')) {
+        setSubmitError('이미 가입된 이메일입니다. 이미 인증을 마쳤다면 로그인해 주세요.');
+      } else {
+        setSubmitError(error.message);
+      }
       setLoading(false);
       return;
     }
 
-    if (authData.user) {
-      const now = new Date().toISOString();
-      // 2. Insert into profiles with email, created_at, last_check_in_at, is_active
-      const { error: dbError } = await supabase.from('profiles').insert([
-        {
-          user_id: authData.user.id,
-          email: formData.email,
-          nickname: formData.nickname,
-          gender: formData.gender,
-          mbti: formData.mbti,
-          hobby: formData.hobby,
-          specialty: formData.specialty,
-          created_at: now,
-          last_check_in_at: now,
-          is_active: true
-        }
-      ]);
-
-      if (dbError) {
-        console.error('Profile Insert Error:', dbError);
-      }
-
-      if (onSuccess) onSuccess('signup');
-      else onClose();
-    }
+    setVerificationEmail(email);
     setLoading(false);
   };
 
   return (
     <div className="modal-overlay" onMouseDown={onClose}>
-      <div className="signup-modal" onMouseDown={(e) => e.stopPropagation()}>
+      <div className="signup-modal" onMouseDown={(event) => event.stopPropagation()}>
         <button className="close-btn" onClick={onClose} aria-label="닫기">×</button>
         <h2>회원가입</h2>
-        <p className="signup-subtitle">늘감사합니다람에 오신 것을 환영해요!</p>
-        
+        <p className="signup-subtitle">감사다람쥐에 오신 것을 환영해요!</p>
+
+        <div className="verification-notice">
+          이메일 인증을 완료해야 회원가입이 마무리되고 자동으로 로그인됩니다.
+        </div>
+
         {submitError && <div className="error-message main-error">{submitError}</div>}
-        
+
+        {verificationEmail && (
+          <div className="verification-success">
+            <strong>{verificationEmail}</strong> 주소로 인증 메일을 보냈어요.
+            메일의 인증 링크를 누르면 이 페이지로 돌아오면서 가입과 로그인이 자동으로 완료됩니다.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="signup-form">
           <div className="form-group row-group">
             <div className="input-group">
@@ -150,6 +168,7 @@ export default function SignupModal({ isOpen, onClose, onSuccess }) {
                 value={formData.email}
                 onChange={handleChange}
                 placeholder="email@example.com"
+                autoComplete="email"
               />
               {errors.email && <span className="field-error">{errors.email}</span>}
             </div>
@@ -162,7 +181,8 @@ export default function SignupModal({ isOpen, onClose, onSuccess }) {
                 name="nickname"
                 value={formData.nickname}
                 onChange={handleChange}
-                placeholder="별명을 입력해주세요"
+                placeholder="별명을 입력해 주세요"
+                autoComplete="nickname"
               />
               {errors.nickname && <span className="field-error">{errors.nickname}</span>}
             </div>
@@ -178,6 +198,7 @@ export default function SignupModal({ isOpen, onClose, onSuccess }) {
                 value={formData.password}
                 onChange={handleChange}
                 placeholder="영문, 숫자, 특수문자 포함 8자 이상"
+                autoComplete="new-password"
               />
               {errors.password && <span className="field-error">{errors.password}</span>}
             </div>
@@ -190,7 +211,8 @@ export default function SignupModal({ isOpen, onClose, onSuccess }) {
                 name="passwordConfirm"
                 value={formData.passwordConfirm}
                 onChange={handleChange}
-                placeholder="비밀번호 재입력"
+                placeholder="비밀번호를 다시 입력해 주세요"
+                autoComplete="new-password"
               />
               {errors.passwordConfirm && <span className="field-error">{errors.passwordConfirm}</span>}
             </div>
@@ -198,8 +220,8 @@ export default function SignupModal({ isOpen, onClose, onSuccess }) {
 
           <div className="form-group row-group three-cols">
             <div className="input-group">
-              <label>성별</label>
-              <select name="gender" value={formData.gender} onChange={handleChange}>
+              <label htmlFor="signup-gender">성별</label>
+              <select id="signup-gender" name="gender" value={formData.gender} onChange={handleChange}>
                 <option value="secret">비밀</option>
                 <option value="male">남자</option>
                 <option value="female">여자</option>
@@ -207,9 +229,9 @@ export default function SignupModal({ isOpen, onClose, onSuccess }) {
             </div>
 
             <div className="input-group">
-              <label>MBTI</label>
-              <select name="mbti" value={formData.mbti} onChange={handleChange}>
-                {MBTI_OPTIONS.map(mbti => (
+              <label htmlFor="signup-mbti">MBTI</label>
+              <select id="signup-mbti" name="mbti" value={formData.mbti} onChange={handleChange}>
+                {MBTI_OPTIONS.map((mbti) => (
                   <option key={mbti} value={mbti}>{mbti.toUpperCase()}</option>
                 ))}
               </select>
@@ -243,7 +265,7 @@ export default function SignupModal({ isOpen, onClose, onSuccess }) {
           </div>
 
           <button type="submit" className="signup-submit-btn" disabled={loading}>
-            {loading ? '가입하는 중...' : '다람이와 함께하기'}
+            {loading ? '인증 메일 보내는 중...' : verificationEmail ? '이메일 인증 메일 다시 보내기' : '이메일 인증 메일 보내기'}
           </button>
         </form>
       </div>
