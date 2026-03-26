@@ -76,6 +76,26 @@
   font-weight: 500;
 }
 
+.verification-notice {
+  background: #fff6e7;
+  border: 1px solid #f4d8a9;
+  border-radius: 16px;
+  color: #7c5b20;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 14px 16px;
+}
+
+.verification-success {
+  background: #eefaf0;
+  border: 1px solid #bde0c3;
+  border-radius: 16px;
+  color: #2d6b39;
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 14px 16px;
+}
+
 .signup-form {
   display: flex;
   flex-direction: column;
