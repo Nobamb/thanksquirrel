@@ -127,3 +127,22 @@ installHook.js:1 Daily letter preparation error: Error: letters fetch failed: 40
     at fetchAllLetters (dailyLetter.js:62:11)
     at async Promise.all (:5173/index 1)
     at async prepareDailyLetter (dailyLetter.js:72:61)
+   
+
+
+8-3. 이번에도 편지가 제대로 화면에 띄워지지도 않고 이런 오류가 발생했어 이 오류를 참고해서 왜 이런 문제가 발생했는지 조사해서 수정좀 해
+
+:5173/letters?mode=all:1  Failed to load resource: the server responded with a status of 404 (Not Found)이 오류 이해하기
+installHook.js:1 Letters API unavailable. Falling back to Supabase letters table. Error: letters fetch failed: 404
+    at fetchAllLetters (dailyLetter.js:63:13)
+    at async Promise.all (:5173/index 1)
+    at async prepareDailyLetter (dailyLetter.js:87:61)
+overrideMethod @ installHook.js:1이 경고 이해하기
+:5173/letters?mode=all:1  Failed to load resource: the server responded with a status of 404 (Not Found)이 오류 이해하기
+installHook.js:1 Letters API unavailable. Falling back to Supabase letters table. Error: letters fetch failed: 404
+    at fetchAllLetters (dailyLetter.js:63:13)
+    at async Promise.all (:5173/index 1)
+    at async prepareDailyLetter (dailyLetter.js:87:61)
+overrideMethod @ installHook.js:1이 경고 이해하기
+tvmwwoihqhyqnnfgvihn.supabase.co/rest/v1/letters?select=id%2Cmessage&order=id.asc:1  Failed to load resource: the server responded with a status of 404 ()이 오류 이해하기
+installHook.js:1 Daily letter preparation error: Object
