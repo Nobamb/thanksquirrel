@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import './SignupModal.css';
 
@@ -27,17 +27,6 @@ export default function SignupModal({ isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState(null);
   const [verificationEmail, setVerificationEmail] = useState('');
-
-  useEffect(() => {
-    if (!isOpen) {
-      setFormData(INITIAL_FORM_DATA);
-      setErrors({});
-      setIsNicknameManuallyEdited(false);
-      setLoading(false);
-      setSubmitError(null);
-      setVerificationEmail('');
-    }
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
