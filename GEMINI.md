@@ -145,6 +145,8 @@ created_at (timestamptz): 편지를 받은 날짜와 시간입니다.
 
 ## 달램이 사진 데이터(확장자명)
 
+### 기본적으로 달램이 이미지들은 supabase storage에 thanksquirrel-image 폴더에 저장
+
 background.webp(배경화면)
 character-hello.webp(반겨주는 이미지)
 character-secret.webp(눈을 가리는 이미지)
@@ -160,3 +162,14 @@ character-tickle.webp(간지러워하는 이미지)
 character-web-eat.webp(쓰다듬어주는 이미지)
 character-web-eat2.webp(쓰다듬어주는 이미지)
 character-web.webp(기본 달램이 이미지)
+
+
+
+## 로고/파비콘 사진 데이터
+
+### 기본적으로 로고/파비콘 이미지들은 supabase storage에 thanksquirrel-webpage-image 폴더에 저장
+
+logo.png(로고 이미지)
+favicon.webp(파비콘 이미지)
+character-icon.png(프로필 아이콘 이미지)
+
