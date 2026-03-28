@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase, getImageUrl } from '../lib/supabase';
+import { clearPendingAuthFlow, getPendingAuthFlow, setPendingAuthFlow } from '../lib/authFlow';
 import { prepareDailyLetter } from '../lib/dailyLetter';
 import AuthenticatedHome from './AuthenticatedHome';
 import DailyLetterSequence from './DailyLetterSequence';
@@ -7,8 +8,6 @@ import SpeechBubble from './SpeechBubble';
 import PasswordResetModal from './PasswordResetModal';
 import SignupModal from './SignupModal';
 import './Login.css';
-
-const getAuthSessionKey = (userId) => `auth_processed_${userId}`;
 
 const buildEmailSignupProfile = (user) => {
   const metadata = user.user_metadata ?? {};
@@ -130,9 +129,12 @@ export default function Login() {
     return promise;
   };
 
-  const triggerSuccess = (type) => {
+  const showSuccessStage = (type) => {
+    setLoading(false);
+    setError(null);
     setIsExiting(true);
-    setTimeout(() => {
+
+    window.setTimeout(() => {
       setIsSuccess(type);
       setIsExiting(false);
     }, 500);
@@ -140,10 +142,11 @@ export default function Login() {
 
   useEffect(() => {
     if (initialErrorDescription) {
+      clearPendingAuthFlow();
       window.history.replaceState(null, '', window.location.pathname);
     }
 
-    const timer = setTimeout(() => {
+    const timer = window.setTimeout(() => {
       setIsReady(true);
     }, 500);
 
@@ -153,6 +156,7 @@ export default function Login() {
         recoveryFlowRef.current = false;
         dailyLetterPromiseRef.current = null;
         setDailyLetter(null);
+        clearPendingAuthFlow();
         return;
       }
 
@@ -179,10 +183,10 @@ export default function Login() {
       authProcessedRef.current = true;
 
       const user = session.user;
-      const sessionKey = getAuthSessionKey(user.id);
-      const processedType = sessionStorage.getItem(sessionKey);
+      const pendingAuthFlow = getPendingAuthFlow();
+      const isFreshAuth = Boolean(pendingAuthFlow || hasAuthTokensInHash);
 
-      if (event === 'INITIAL_SESSION' && !hasAuthTokensInHash) {
+      if (!isFreshAuth) {
         const fetchedProfile = await fetchProfile(user.id);
         if (fetchedProfile) {
           setProfile(fetchedProfile);
@@ -191,19 +195,6 @@ export default function Login() {
         setDailyLetter(null);
         setAppStage('home');
         setIsSuccess(null);
-        return;
-      }
-
-      if (processedType === 'login' || processedType === 'signup') {
-        const fetchedProfile = await fetchProfile(user.id);
-        if (fetchedProfile) {
-          setProfile(fetchedProfile);
-        }
-
-        beginDailyLetterPreparation(user.id);
-        setIsReady(true);
-        setAppStage('auth');
-        setIsSuccess(processedType);
         return;
       }
 
@@ -217,8 +208,12 @@ export default function Login() {
       if (profileLookupError) {
         console.error('Profile lookup error:', profileLookupError);
         authProcessedRef.current = false;
+        clearPendingAuthFlow();
+        setLoading(false);
         return;
       }
+
+      let successType = 'login';
 
       if (!existingProfile) {
         let profileToInsert = null;
@@ -227,6 +222,7 @@ export default function Login() {
           profileToInsert = buildEmailSignupProfile(user);
 
           if (!user.email_confirmed_at || !profileToInsert) {
+            clearPendingAuthFlow();
             await supabase.auth.signOut();
             authProcessedRef.current = false;
             return;
@@ -239,21 +235,17 @@ export default function Login() {
 
         if (insertError) {
           console.error('Profile insert error:', insertError);
+          clearPendingAuthFlow();
+          setLoading(false);
           setError('로그인 처리 중 문제가 발생했습니다. 다시 로그인해 주세요.');
           await supabase.auth.signOut();
           authProcessedRef.current = false;
           return;
         }
 
-        const fetchedProfile = await fetchProfile(user.id);
-        if (fetchedProfile) {
-          setProfile(fetchedProfile);
-        }
-
-        beginDailyLetterPreparation(user.id);
-        sessionStorage.setItem(sessionKey, 'signup');
-        triggerSuccess('signup');
-        return;
+        successType = 'signup';
+      } else if (pendingAuthFlow === 'signup') {
+        successType = 'signup';
       }
 
       const updatePayload = {
@@ -278,9 +270,10 @@ export default function Login() {
         setProfile(fetchedProfile);
       }
 
+      clearPendingAuthFlow();
       beginDailyLetterPreparation(user.id);
-      sessionStorage.setItem(sessionKey, 'login');
-      triggerSuccess('login');
+      setAppStage('auth');
+      showSuccessStage(successType);
     });
 
     return () => {
@@ -298,6 +291,7 @@ export default function Login() {
 
   const handleKakaoLogin = async () => {
     setError(null);
+    setPendingAuthFlow('oauth');
 
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'kakao',
@@ -310,12 +304,14 @@ export default function Login() {
     });
 
     if (oauthError) {
+      clearPendingAuthFlow();
       setError('카카오 로그인 중 오류가 발생했어요.');
     }
   };
 
   const handleGoogleLogin = async () => {
     setError(null);
+    setPendingAuthFlow('oauth');
 
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -328,12 +324,14 @@ export default function Login() {
     });
 
     if (oauthError) {
+      clearPendingAuthFlow();
       setError('구글 로그인 중 오류가 발생했어요.');
     }
   };
 
   const handleNaverLogin = async () => {
     setError(null);
+    setPendingAuthFlow('oauth');
 
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'custom:naver',
@@ -346,6 +344,7 @@ export default function Login() {
     });
 
     if (oauthError) {
+      clearPendingAuthFlow();
       setError('네이버 로그인 중 오류가 발생했어요.');
     }
   };
@@ -354,13 +353,16 @@ export default function Login() {
     event.preventDefault();
     setLoading(true);
     setError(null);
+    setPendingAuthFlow('login');
 
-    const { data, error: loginError } = await supabase.auth.signInWithPassword({
+    const { error: loginError } = await supabase.auth.signInWithPassword({
       email: email.trim().toLowerCase(),
       password,
     });
 
     if (loginError) {
+      clearPendingAuthFlow();
+
       if (loginError.message.includes('Email not confirmed')) {
         setError('이메일 인증이 필요해요. 메일함에서 인증을 먼저 완료해 주세요.');
       } else if (loginError.message.includes('Invalid login credentials')) {
@@ -368,27 +370,15 @@ export default function Login() {
       } else {
         setError(loginError.message);
       }
+
       setLoading(false);
-      return;
     }
-
-    if (data?.session?.user?.id) {
-      sessionStorage.setItem(getAuthSessionKey(data.session.user.id), 'login');
-    }
-
-    triggerSuccess('login');
-    setLoading(false);
   };
 
   const handlePasswordResetClose = async () => {
     if (passwordResetMode === 'update') {
       recoveryFlowRef.current = false;
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (session?.user?.id) {
-        sessionStorage.removeItem(getAuthSessionKey(session.user.id));
-      }
-
+      clearPendingAuthFlow();
       await supabase.auth.signOut();
     }
 
@@ -399,6 +389,7 @@ export default function Login() {
   const handlePasswordUpdated = async () => {
     recoveryFlowRef.current = false;
     setIsPasswordResetModalOpen(false);
+    setLoading(false);
 
     const { data: { session } } = await supabase.auth.getSession();
 
@@ -409,10 +400,9 @@ export default function Login() {
       }
 
       beginDailyLetterPreparation(session.user.id);
-      sessionStorage.setItem(getAuthSessionKey(session.user.id), 'login');
     }
 
-    triggerSuccess('login');
+    showSuccessStage('login');
   };
 
   const handleSuccessConfirm = async () => {
@@ -426,6 +416,7 @@ export default function Login() {
     window.setTimeout(() => {
       setIsSuccess(null);
       setIsSuccessLeaving(false);
+
       if (preparedLetter) {
         setAppStage('letter');
       } else {
