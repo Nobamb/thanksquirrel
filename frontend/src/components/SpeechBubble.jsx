@@ -7,7 +7,7 @@ export default function SpeechBubble({
   className = '',
   showButton = false,
   onButtonClick,
-  buttonText = '?뚭쿋?ㅻ엺!',
+  buttonText = '알겠다람!',
   isButtonDisabled = false,
 }) {
   const lines = text.split('\n');

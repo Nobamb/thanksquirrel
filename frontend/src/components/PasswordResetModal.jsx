@@ -148,7 +148,7 @@ export default function PasswordResetModal({
         {mode === 'request' ? (
           <>
             <div className="password-reset-notice">
-              비밀번호를 바꿔주기 위해 메일은 달램이가 보냈어요! 메일 인증을 마치기 전에는 새 비밀번호를 설정할 수 없답니다!
+              다람다람! 비밀번호를 바꿔주기 위해 메일은 달램이가 보냈습니다람! 메일 인증을 마치기 전까지는 조금만 기다려주시면 좋겠습니다람!
             </div>
 
             {requestState.error && <div className="error-message main-error">{requestState.error}</div>}
@@ -172,7 +172,7 @@ export default function PasswordResetModal({
               </div>
 
               <button type="submit" className="signup-submit-btn" disabled={requestState.loading}>
-                {requestState.loading ? '메일 보내는 중...' : '달램이에게 비밀번호 바꿔달라고 메일 부탁하기기'}
+                {requestState.loading ? '메일 보내는 중...' : '다람이에게 비밀번호 바꿔달라고 부탁하기다람!'}
               </button>
             </form>
           </>

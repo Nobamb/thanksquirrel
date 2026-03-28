@@ -509,18 +509,18 @@ export default function Login() {
 
   const getDialogue = () => {
     if (squirrelState === 'peeking') {
-      return '달램달램! 몰래 보고 있을 거니 걱정 말아달램!';
+      return '다람다람! 안 보고 있으니까 걱정하지 않아도 됩니다람!';
     }
 
-    return '달램달램! 여기를 찾아와 줘서 고마워달램!';
+    return '다람다람! 용기를 내어 와 주셔서 감사합니다람!';
   };
 
   const getBaseSuccessDialogue = () => {
     if (isSuccess === 'signup') {
-      return '달램달램! 처음이라 조금 낯설 수 있지만 여기까지 와줘서 정말 고마워달램!\n앞으로 함께 천천히 익숙해지면 좋겠달램!';
+      return '다람다람! 처음이라 쉽지 않을텐데 용기내서 우리 동네 와주셔서 정말 감사합니다람!\n수고 많으셨을텐데 우선 우리 동네에서 푹 쉬고 있어주시면 좋겠습니다람!';
     }
 
-    return '달램달램! 다시 와 줘서 반가워달램!\n오늘도 잘 부탁한달램!';
+    return '다람다람! 우리 동네 사람이었다람!\n편히 쉬시면 좋겠습니다람!';
   };
 
   const getSuccessDialogue = () => {
@@ -528,11 +528,11 @@ export default function Login() {
 
     switch (dailyLetterStatus) {
       case 'loading':
-        return `${baseDialogue}\n\n오늘의 편지를 준비하고 있어달램!`;
+        return `${baseDialogue}\n\n오늘의 편지를 준비하고 있습니다람!`;
       case 'ready':
-        return `${baseDialogue}\n\n오늘의 편지도 도착했달램! 버튼을 누르면 바로 펼쳐볼 수 있달램!`;
+        return `${baseDialogue}\n\n다람다람! 늘 감사합니다람! 소중한 사람에게 온 편지가 왔습니다람! 한번 읽어보면 좋겠습니다람!`;
       case 'already_received':
-        return `${baseDialogue}\n\n오늘 받은 편지는 이미 전달했달램! 홈으로 안내할게달램!`;
+        return `${baseDialogue}\n\n오늘 받은 편지는 이미 전달했습니다람! 홈으로 안내하겠습니다람!`;
       case 'error':
         return `${baseDialogue}\n\n${dailyLetterError}`;
       default:
