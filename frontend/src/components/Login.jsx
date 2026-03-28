@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase, getImageUrl } from '../lib/supabase';
 import SpeechBubble from './SpeechBubble';
+import PasswordResetModal from './PasswordResetModal';
 import SignupModal from './SignupModal';
 import './Login.css';
 
@@ -31,7 +32,12 @@ const buildOAuthProfile = (user) => {
 
   return {
     email: email.toLowerCase(),
-    nickname: nestedData.profile_nickname ?? nestedData.nickname ?? nestedData.name ?? email.split('@')[0] ?? '기본_별명',
+    nickname:
+      nestedData.profile_nickname ??
+      nestedData.nickname ??
+      nestedData.name ??
+      email.split('@')[0] ??
+      '기본_별명',
     gender: nestedData.gender ?? 'secret',
     mbti: 'infp',
     hobby: '',
@@ -61,16 +67,26 @@ async function insertProfile(user, profile) {
 }
 
 export default function Login() {
+  const initialHashParams = new URLSearchParams(window.location.hash.slice(1));
+  const initialRecoveryMode = initialHashParams.get('type') === 'recovery';
+  const initialErrorDescription =
+    initialHashParams.get('error_description') || initialHashParams.get('error');
+  const initialError = initialErrorDescription
+    ? `OAuth 오류: ${decodeURIComponent(initialErrorDescription).replace(/\+/g, ' ')}`
+    : null;
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isFocused, setIsFocused] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState(initialError);
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
+  const [isPasswordResetModalOpen, setIsPasswordResetModalOpen] = useState(initialRecoveryMode);
+  const [passwordResetMode, setPasswordResetMode] = useState(initialRecoveryMode ? 'update' : 'request');
   const [isSuccess, setIsSuccess] = useState(null);
   const [isExiting, setIsExiting] = useState(false);
   const authProcessedRef = useRef(false);
+  const recoveryFlowRef = useRef(initialRecoveryMode);
 
   const triggerSuccess = (type) => {
     setIsExiting(true);
@@ -81,11 +97,7 @@ export default function Login() {
   };
 
   useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.slice(1));
-    const errorDescription = hashParams.get('error_description') || hashParams.get('error');
-
-    if (errorDescription) {
-      setError(`OAuth 오류: ${decodeURIComponent(errorDescription).replace(/\+/g, ' ')}`);
+    if (initialErrorDescription) {
       window.history.replaceState(null, '', window.location.pathname);
     }
 
@@ -96,10 +108,23 @@ export default function Login() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!session || event === 'SIGNED_OUT') {
         authProcessedRef.current = false;
+        recoveryFlowRef.current = false;
+        return;
+      }
+
+      if (event === 'PASSWORD_RECOVERY') {
+        recoveryFlowRef.current = true;
+        authProcessedRef.current = false;
+        setPasswordResetMode('update');
+        setIsPasswordResetModalOpen(true);
         return;
       }
 
       if (!['INITIAL_SESSION', 'SIGNED_IN', 'USER_UPDATED'].includes(event)) {
+        return;
+      }
+
+      if (recoveryFlowRef.current) {
         return;
       }
 
@@ -151,7 +176,7 @@ export default function Login() {
 
         if (insertError) {
           console.error('Profile insert error:', insertError);
-          setError('놀러오는 도중 문제가 발생했습니다! 다시 로그인 부탁할게요!');
+          setError('로그인 처리 중 문제가 발생했습니다. 다시 로그인해 주세요.');
           await supabase.auth.signOut();
           authProcessedRef.current = false;
           return;
@@ -188,11 +213,11 @@ export default function Login() {
       subscription.unsubscribe();
       authProcessedRef.current = false;
     };
-  }, []);
+  }, [initialErrorDescription]);
 
   const squirrelState = !isReady
     ? 'hidden'
-    : (isSignupModalOpen || isFocused || email.length > 0 || password.length > 0)
+    : (isSignupModalOpen || isPasswordResetModalOpen || isFocused || email.length > 0 || password.length > 0)
       ? 'peeking'
       : 'greeting';
 
@@ -210,7 +235,7 @@ export default function Login() {
     });
 
     if (oauthError) {
-      setError('카카오 로그인 오류가 발생했어요!');
+      setError('카카오 로그인 중 오류가 발생했어요.');
     }
   };
 
@@ -228,7 +253,7 @@ export default function Login() {
     });
 
     if (oauthError) {
-      setError('구글 로그인 오류가 발생했어요!');
+      setError('구글 로그인 중 오류가 발생했어요.');
     }
   };
 
@@ -246,7 +271,7 @@ export default function Login() {
     });
 
     if (oauthError) {
-      setError('네이버 로그인 오류가 발생했어요!');
+      setError('네이버 로그인 중 오류가 발생했어요.');
     }
   };
 
@@ -262,9 +287,9 @@ export default function Login() {
 
     if (loginError) {
       if (loginError.message.includes('Email not confirmed')) {
-        setError('이메일 인증이 필요해요! 메일함에서 인증을 먼저 완료해 주세요!');
+        setError('이메일 인증이 필요해요. 메일함에서 인증을 먼저 완료해 주세요.');
       } else if (loginError.message.includes('Invalid login credentials')) {
-        setError('이메일 또는 비밀번호가 올바르지 않아요!');
+        setError('이메일 또는 비밀번호가 올바르지 않아요.');
       } else {
         setError(loginError.message);
       }
@@ -278,6 +303,35 @@ export default function Login() {
 
     triggerSuccess('login');
     setLoading(false);
+  };
+
+  const handlePasswordResetClose = async () => {
+    if (passwordResetMode === 'update') {
+      recoveryFlowRef.current = false;
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session?.user?.id) {
+        sessionStorage.removeItem(getAuthSessionKey(session.user.id));
+      }
+
+      await supabase.auth.signOut();
+    }
+
+    setIsPasswordResetModalOpen(false);
+    setPasswordResetMode('request');
+  };
+
+  const handlePasswordUpdated = async () => {
+    recoveryFlowRef.current = false;
+    setIsPasswordResetModalOpen(false);
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (session?.user?.id) {
+      sessionStorage.setItem(getAuthSessionKey(session.user.id), 'login');
+    }
+
+    triggerSuccess('login');
   };
 
   const getImageName = () => {
@@ -298,16 +352,16 @@ export default function Login() {
       return '다람다람! 안 보고 있으니까 걱정하지 않아도 됩니다람!';
     }
 
-    return '다람다람! 용기를 내어 와 주셔서 감사합니다람!';
+    return '다람다람! 여기를 찾아와 주셔서 감사합니다람!';
   };
 
   const getSuccessDialogue = () => {
     if (isSuccess === 'login') {
-      return '다람다람! 우리 동네 사람이었다람!\n편히 쉬시면 좋겠습니다람!';
+      return '다람다람! 우리 동네 회원이 되었답니다람!\n재밌게 쉬시면 좋겠습니다람!';
     }
 
     if (isSuccess === 'signup') {
-      return '다람다람! 처음이라 쉽지 않을텐데 용기내서 우리 동네 와주셔서 정말 감사합니다람!\n수고 많으셨을텐데 우선 우리 동네에서 푹 쉬고 있어주시면 좋겠습니다람!';
+      return '다람다람! 처음이라 낯설 수 있는데 여기서 우리 동네를 찾아 주셔서 정말 감사합니다람!\n하고 싶은 말이 많지만 우선 우리 동네에서 쉬고 있어 주시면 좋겠습니다람!';
     }
 
     return '';
@@ -344,7 +398,7 @@ export default function Login() {
             </div>
             <img
               src={getImageUrl('character-hello.webp')}
-              alt="다람쥐 환영 캐릭터, 달램이"
+              alt="다람이 캐릭터"
               className="squirrel-img success-anim"
             />
           </div>
@@ -364,14 +418,14 @@ export default function Login() {
               </div>
               <img
                 src={getImageUrl(getImageName())}
-                alt="다람쥐 캐릭터"
+                alt="다람이 캐릭터"
                 className={`squirrel-img ${squirrelState}`}
               />
             </div>
 
             <div className="form-container">
               <h2>환영합니다</h2>
-              <p className="subtitle">늘감사합니다람</p>
+              <p className="subtitle">thanksquirrel</p>
 
               <form onSubmit={handleSubmit} className="login-form">
                 {error && <div className="error-message">{error}</div>}
@@ -412,7 +466,16 @@ export default function Login() {
               </form>
 
               <div className="extra-links">
-                <button type="button" className="text-link">비밀번호 찾기</button>
+                <button
+                  type="button"
+                  className="text-link"
+                  onClick={() => {
+                    setPasswordResetMode('request');
+                    setIsPasswordResetModalOpen(true);
+                  }}
+                >
+                  비밀번호 찾기
+                </button>
                 <span className="divider">|</span>
                 <button type="button" className="text-link" onClick={() => setIsSignupModalOpen(true)}>
                   회원가입
@@ -433,10 +496,24 @@ export default function Login() {
       </div>
 
       {!isSuccess && !isExiting && (
-        <SignupModal
-          isOpen={isSignupModalOpen}
-          onClose={() => setIsSignupModalOpen(false)}
-        />
+        <>
+          {isSignupModalOpen && (
+            <SignupModal
+              isOpen={isSignupModalOpen}
+              onClose={() => setIsSignupModalOpen(false)}
+            />
+          )}
+          {isPasswordResetModalOpen && (
+            <PasswordResetModal
+              key={`${passwordResetMode}-${email || 'blank'}`}
+              isOpen={isPasswordResetModalOpen}
+              mode={passwordResetMode}
+              initialEmail={email}
+              onClose={handlePasswordResetClose}
+              onPasswordUpdated={handlePasswordUpdated}
+            />
+          )}
+        </>
       )}
     </>
   );
