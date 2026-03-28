@@ -29,8 +29,8 @@
 }
 
 .site-header__logo {
-  width: 168px;
-  max-width: 42vw;
+  width: 400px;
+  max-width: 62vw;
   display: block;
   filter: drop-shadow(0 12px 24px rgba(102, 73, 43, 0.12));
 }
@@ -79,12 +79,12 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 120px 24px 160px;
+  padding: 120px 24px 0;
 }
 
 .site-main__character-shell {
   position: relative;
-  width: min(420px, 76vw);
+  width: min(340px, 68vw);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -92,6 +92,7 @@
   opacity: 0;
   animation: homeCharacterEnter 0.72s cubic-bezier(0.18, 1, 0.32, 1) forwards;
   animation-delay: 0.9s;
+  margin-bottom: -10px;
 }
 
 .site-main__glow {
@@ -115,7 +116,7 @@
 .site-footer {
   position: relative;
   z-index: 3;
-  padding: 0 24px 24px;
+  padding: 0;
   transform: translateY(120%);
   opacity: 0;
   animation: homeFooterEnter 0.62s cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -123,22 +124,24 @@
 }
 
 .site-footer__content {
-  min-height: 88px;
-  border-radius: 26px;
-  background: rgba(255, 252, 247, 0.84);
+  min-height: 112px;
+  width: 100%;
+  border-radius: 32px 32px 0 0;
+  background: rgba(255, 252, 247, 0.92);
   box-shadow: 0 -10px 30px rgba(107, 78, 45, 0.08);
   backdrop-filter: blur(12px);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
-  padding: 20px 20px 18px;
+  padding: 22px 20px;
 }
 
 .site-footer__copy {
   margin: 0;
   text-align: center;
-  color: #9d8568;
-  font-size: 12px;
+  color: #76593a;
+  font-size: 16px;
+  font-weight: 600;
   letter-spacing: 0.01em;
 }
 
@@ -184,8 +187,8 @@
   }
 
   .site-header__logo {
-    width: 132px;
-    max-width: 48vw;
+    width: 220px;
+    max-width: 62vw;
   }
 
   .header-icon-button,
@@ -196,20 +199,24 @@
   }
 
   .site-main {
-    padding: 108px 18px 136px;
+    padding: 108px 18px 0;
   }
 
   .site-main__character-shell {
-    width: min(340px, 84vw);
+    width: min(280px, 78vw);
   }
 
   .site-footer {
-    padding: 0 16px 16px;
+    padding: 0;
   }
 
   .site-footer__content {
-    min-height: 74px;
-    border-radius: 22px;
-    padding-bottom: 14px;
+    min-height: 90px;
+    border-radius: 24px 24px 0 0;
+    padding: 18px 16px;
+  }
+
+  .site-footer__copy {
+    font-size: 13px;
   }
 }
