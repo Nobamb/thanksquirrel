@@ -10,11 +10,13 @@ const KST_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
 function buildLettersEndpoint() {
   const configuredBaseUrl = import.meta.env.VITE_LETTERS_API_URL?.trim();
 
-  if (configuredBaseUrl) {
-    return `${configuredBaseUrl.replace(/\/$/, '')}/letters?mode=all`;
+  if (!configuredBaseUrl) {
+    const error = new Error('VITE_LETTERS_API_URL is not configured.');
+    error.code = 'missing_letters_api_url';
+    throw error;
   }
 
-  return '/letters?mode=all';
+  return `${configuredBaseUrl.replace(/\/$/, '')}/letters?mode=all`;
 }
 
 function normalizeLetters(payload) {
@@ -59,21 +61,37 @@ async function fetchAllLetters() {
   });
 
   if (!response.ok) {
-    throw new Error(`letters fetch failed: ${response.status}`);
+    const error = new Error(`letters fetch failed: ${response.status}`);
+    error.code = 'letters_api_failed';
+    throw error;
   }
 
   const payload = await response.json();
-  return normalizeLetters(payload);
+  const letters = normalizeLetters(payload);
+
+  if (!letters.length) {
+    const error = new Error('letters payload is empty.');
+    error.code = 'letters_payload_empty';
+    throw error;
+  }
+
+  return letters;
 }
 
-export async function prepareDailyLetter(userId) {
+export async function prepareDailyLetter(profileId) {
+  if (!profileId) {
+    const error = new Error('profile id is required.');
+    error.code = 'missing_profile_id';
+    throw error;
+  }
+
   const todayKstKey = toKstDateKey(new Date());
 
   const [{ data: history, error: historyError }, letters] = await Promise.all([
     supabase
       .from('user_letters')
       .select('letter_id, created_at')
-      .eq('user_id', userId),
+      .eq('user_id', profileId),
     fetchAllLetters(),
   ]);
 
@@ -90,7 +108,10 @@ export async function prepareDailyLetter(userId) {
   );
 
   if (hasReceivedToday) {
-    return null;
+    return {
+      status: 'already_received',
+      letter: null,
+    };
   }
 
   const receivedLetterIds = new Set(
@@ -105,7 +126,7 @@ export async function prepareDailyLetter(userId) {
 
   const { error: insertError } = await supabase.from('user_letters').insert([
     {
-      user_id: userId,
+      user_id: profileId,
       letter_id: selectedLetter.id,
     },
   ]);
@@ -114,5 +135,8 @@ export async function prepareDailyLetter(userId) {
     throw insertError;
   }
 
-  return selectedLetter;
+  return {
+    status: 'ready',
+    letter: selectedLetter,
+  };
 }

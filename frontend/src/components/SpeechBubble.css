@@ -80,3 +80,9 @@
 .speech-button:active {
   transform: scale(0.95);
 }
+
+.speech-button:disabled {
+  background-color: #ffcfdb;
+  cursor: wait;
+  transform: none;
+}

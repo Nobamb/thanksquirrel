@@ -71,7 +71,7 @@ async function insertProfile(user, profile) {
 async function fetchProfile(userId) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('email, nickname, avatar_url')
+    .select('id, email, nickname, avatar_url')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -81,6 +81,21 @@ async function fetchProfile(userId) {
   }
 
   return data;
+}
+
+function getDailyLetterErrorMessage(error) {
+  switch (error?.code) {
+    case 'missing_letters_api_url':
+      return '편지 API 주소가 설정되지 않았어요. VITE_LETTERS_API_URL 값을 확인해 주세요.';
+    case 'letters_api_failed':
+      return '편지 데이터를 불러오지 못했어요. Cloudflare Worker 상태를 확인해 주세요.';
+    case 'letters_payload_empty':
+      return '편지 데이터가 비어 있어요. Worker KV 데이터를 확인해 주세요.';
+    case 'missing_profile_id':
+      return '편지를 준비할 프로필 정보를 찾지 못했어요.';
+    default:
+      return '오늘의 편지를 준비하지 못했어요. 잠시 후 다시 시도해 주세요.';
+  }
 }
 
 export default function Login() {
@@ -108,21 +123,44 @@ export default function Login() {
   const [appStage, setAppStage] = useState('auth');
   const [profile, setProfile] = useState(null);
   const [dailyLetter, setDailyLetter] = useState(null);
+  const [dailyLetterStatus, setDailyLetterStatus] = useState('idle');
+  const [dailyLetterError, setDailyLetterError] = useState('');
   const [isExiting, setIsExiting] = useState(false);
   const authProcessedRef = useRef(false);
   const recoveryFlowRef = useRef(initialRecoveryMode);
   const dailyLetterPromiseRef = useRef(null);
+  const activeProfileIdRef = useRef(null);
 
-  const beginDailyLetterPreparation = (userId) => {
-    const promise = prepareDailyLetter(userId)
-      .then((letter) => {
-        setDailyLetter(letter);
-        return letter;
+  const resetDailyLetterState = () => {
+    dailyLetterPromiseRef.current = null;
+    activeProfileIdRef.current = null;
+    setDailyLetter(null);
+    setDailyLetterStatus('idle');
+    setDailyLetterError('');
+  };
+
+  const beginDailyLetterPreparation = (profileId) => {
+    activeProfileIdRef.current = profileId;
+    setDailyLetter(null);
+    setDailyLetterError('');
+    setDailyLetterStatus('loading');
+
+    const promise = prepareDailyLetter(profileId)
+      .then((result) => {
+        setDailyLetter(result.letter ?? null);
+        setDailyLetterStatus(result.status);
+        return result;
       })
       .catch((letterError) => {
         console.error('Daily letter preparation error:', letterError);
         setDailyLetter(null);
-        return null;
+        setDailyLetterStatus('error');
+        setDailyLetterError(getDailyLetterErrorMessage(letterError));
+        return {
+          status: 'error',
+          letter: null,
+          error: letterError,
+        };
       });
 
     dailyLetterPromiseRef.current = promise;
@@ -132,6 +170,7 @@ export default function Login() {
   const showSuccessStage = (type) => {
     setLoading(false);
     setError(null);
+    setIsSuccessLeaving(false);
     setIsExiting(true);
 
     window.setTimeout(() => {
@@ -150,12 +189,13 @@ export default function Login() {
       setIsReady(true);
     }, 500);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!session || event === 'SIGNED_OUT') {
         authProcessedRef.current = false;
         recoveryFlowRef.current = false;
-        dailyLetterPromiseRef.current = null;
-        setDailyLetter(null);
+        resetDailyLetterState();
         clearPendingAuthFlow();
         return;
       }
@@ -172,11 +212,7 @@ export default function Login() {
         return;
       }
 
-      if (recoveryFlowRef.current) {
-        return;
-      }
-
-      if (authProcessedRef.current) {
+      if (recoveryFlowRef.current || authProcessedRef.current) {
         return;
       }
 
@@ -192,7 +228,7 @@ export default function Login() {
           setProfile(fetchedProfile);
         }
 
-        setDailyLetter(null);
+        resetDailyLetterState();
         setAppStage('home');
         setIsSuccess(null);
         return;
@@ -201,7 +237,7 @@ export default function Login() {
       const provider = user.app_metadata?.provider || 'unknown';
       const { data: existingProfile, error: profileLookupError } = await supabase
         .from('profiles')
-        .select('user_id')
+        .select('id, user_id')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -210,6 +246,7 @@ export default function Login() {
         authProcessedRef.current = false;
         clearPendingAuthFlow();
         setLoading(false);
+        setError('로그인 정보를 확인하는 중 문제가 발생했어요. 다시 시도해 주세요.');
         return;
       }
 
@@ -237,7 +274,7 @@ export default function Login() {
           console.error('Profile insert error:', insertError);
           clearPendingAuthFlow();
           setLoading(false);
-          setError('로그인 처리 중 문제가 발생했습니다. 다시 로그인해 주세요.');
+          setError('로그인 처리 중 문제가 발생했어요. 다시 로그인해 주세요.');
           await supabase.auth.signOut();
           authProcessedRef.current = false;
           return;
@@ -266,12 +303,17 @@ export default function Login() {
       }
 
       const fetchedProfile = await fetchProfile(user.id);
-      if (fetchedProfile) {
-        setProfile(fetchedProfile);
+      if (!fetchedProfile?.id) {
+        authProcessedRef.current = false;
+        clearPendingAuthFlow();
+        setLoading(false);
+        setError('프로필 정보를 불러오지 못했어요. 다시 로그인해 주세요.');
+        return;
       }
 
+      setProfile(fetchedProfile);
       clearPendingAuthFlow();
-      beginDailyLetterPreparation(user.id);
+      beginDailyLetterPreparation(fetchedProfile.id);
       setAppStage('auth');
       showSuccessStage(successType);
     });
@@ -364,7 +406,7 @@ export default function Login() {
       clearPendingAuthFlow();
 
       if (loginError.message.includes('Email not confirmed')) {
-        setError('이메일 인증이 필요해요. 메일함에서 인증을 먼저 완료해 주세요.');
+        setError('이메일 인증이 필요해요. 메일함에서 인증을 완료해 주세요.');
       } else if (loginError.message.includes('Invalid login credentials')) {
         setError('이메일 또는 비밀번호가 올바르지 않아요.');
       } else {
@@ -391,33 +433,54 @@ export default function Login() {
     setIsPasswordResetModalOpen(false);
     setLoading(false);
 
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
     if (session?.user?.id) {
       const fetchedProfile = await fetchProfile(session.user.id);
-      if (fetchedProfile) {
-        setProfile(fetchedProfile);
-      }
 
-      beginDailyLetterPreparation(session.user.id);
+      if (fetchedProfile?.id) {
+        setProfile(fetchedProfile);
+        beginDailyLetterPreparation(fetchedProfile.id);
+      } else {
+        setDailyLetter(null);
+        setDailyLetterStatus('error');
+        setDailyLetterError('프로필 정보를 찾지 못해 편지를 준비할 수 없어요.');
+      }
     }
 
     showSuccessStage('login');
   };
 
   const handleSuccessConfirm = async () => {
-    setIsSuccessLeaving(true);
-
-    let preparedLetter = dailyLetter;
-    if (!preparedLetter && dailyLetterPromiseRef.current) {
-      preparedLetter = await dailyLetterPromiseRef.current;
+    if (dailyLetterStatus === 'error') {
+      if (activeProfileIdRef.current) {
+        beginDailyLetterPreparation(activeProfileIdRef.current);
+      }
+      return;
     }
+
+    let nextStatus = dailyLetterStatus;
+    let nextLetter = dailyLetter;
+
+    if (dailyLetterStatus === 'loading' && dailyLetterPromiseRef.current) {
+      const result = await dailyLetterPromiseRef.current;
+      nextStatus = result?.status ?? 'error';
+      nextLetter = result?.letter ?? null;
+    }
+
+    if (nextStatus === 'error') {
+      return;
+    }
+
+    setIsSuccessLeaving(true);
 
     window.setTimeout(() => {
       setIsSuccess(null);
       setIsSuccessLeaving(false);
 
-      if (preparedLetter) {
+      if (nextStatus === 'ready' && nextLetter) {
         setAppStage('letter');
       } else {
         setAppStage('home');
@@ -446,22 +509,50 @@ export default function Login() {
 
   const getDialogue = () => {
     if (squirrelState === 'peeking') {
-      return '다람다람! 안 보고 있을 거니 걱정 안 하셔도 됩니다람!';
+      return '달램달램! 몰래 보고 있을 거니 걱정 말아달램!';
     }
 
-    return '다람다람! 용기를 내어 와 주셔서 감사합니다람!';
+    return '달램달램! 여기를 찾아와 줘서 고마워달램!';
+  };
+
+  const getBaseSuccessDialogue = () => {
+    if (isSuccess === 'signup') {
+      return '달램달램! 처음이라 조금 낯설 수 있지만 여기까지 와줘서 정말 고마워달램!\n앞으로 함께 천천히 익숙해지면 좋겠달램!';
+    }
+
+    return '달램달램! 다시 와 줘서 반가워달램!\n오늘도 잘 부탁한달램!';
   };
 
   const getSuccessDialogue = () => {
-    if (isSuccess === 'login') {
-      return '다람다람! 우리 동네 사람이었다람!\n편히 쉬시면 좋겠습니다람!';
-    }
+    const baseDialogue = getBaseSuccessDialogue();
 
-    if (isSuccess === 'signup') {
-      return '다람다람! 처음이라 쉽지 않을텐데 용기내서 우리 동네 와주셔서 정말 감사합니다람!\n수고 많으셨을텐데 우선 우리 동네에서 푹 쉬고 있어주시면 좋겠습니다람!';
+    switch (dailyLetterStatus) {
+      case 'loading':
+        return `${baseDialogue}\n\n오늘의 편지를 준비하고 있어달램!`;
+      case 'ready':
+        return `${baseDialogue}\n\n오늘의 편지도 도착했달램! 버튼을 누르면 바로 펼쳐볼 수 있달램!`;
+      case 'already_received':
+        return `${baseDialogue}\n\n오늘 받은 편지는 이미 전달했달램! 홈으로 안내할게달램!`;
+      case 'error':
+        return `${baseDialogue}\n\n${dailyLetterError}`;
+      default:
+        return baseDialogue;
     }
+  };
 
-    return '';
+  const getSuccessButtonText = () => {
+    switch (dailyLetterStatus) {
+      case 'loading':
+        return '편지 준비 중...';
+      case 'ready':
+        return '편지 보기';
+      case 'already_received':
+        return '홈으로';
+      case 'error':
+        return '다시 시도';
+      default:
+        return '계속';
+    }
   };
 
   return (
@@ -484,6 +575,8 @@ export default function Login() {
                   variant="large"
                   className="large"
                   showButton
+                  buttonText={getSuccessButtonText()}
+                  isButtonDisabled={dailyLetterStatus === 'loading'}
                   onButtonClick={handleSuccessConfirm}
                 />
               </div>
@@ -552,7 +645,7 @@ export default function Login() {
                   </div>
 
                   <button type="submit" disabled={loading} className="login-button">
-                    {loading ? '로딩 중...' : '로그인'}
+                    {loading ? '로그인 중...' : '로그인'}
                   </button>
                 </form>
 
