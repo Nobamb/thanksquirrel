@@ -1,4 +1,5 @@
 .authenticated-home {
+  --shell-inline-space: clamp(0px, calc((100vw - 1280px) / 2), 80px);
   position: relative;
   min-height: 100vh;
   overflow: hidden;
@@ -16,7 +17,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 28px 0;
+  padding: 24px var(--shell-inline-space) 0;
   transform: translateY(-120%);
   opacity: 0;
   animation: homeHeaderEnter 0.62s cubic-bezier(0.22, 1, 0.36, 1) forwards;
@@ -38,13 +39,13 @@
 .site-header__actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 24px;
 }
 
 .header-icon-button,
 .header-profile-button {
-  width: 52px;
-  height: 52px;
+  width: 70px;
+  height: 70px;
   border: none;
   border-radius: 18px;
   display: inline-flex;
@@ -57,8 +58,8 @@
 }
 
 .header-icon-button svg {
-  width: 24px;
-  height: 24px;
+  width: 48px;
+  height: 48px;
 }
 
 .header-profile-button {
@@ -101,7 +102,11 @@
   width: 88%;
   height: 18%;
   border-radius: 999px;
-  background: radial-gradient(circle, rgba(255, 220, 183, 0.55) 0%, rgba(255, 220, 183, 0) 72%);
+  background: radial-gradient(
+    circle,
+    rgba(255, 220, 183, 0.55) 0%,
+    rgba(255, 220, 183, 0) 72%
+  );
   filter: blur(8px);
 }
 
@@ -116,7 +121,7 @@
 .site-footer {
   position: relative;
   z-index: 3;
-  padding: 0;
+  width: 100%;
   transform: translateY(120%);
   opacity: 0;
   animation: homeFooterEnter 0.62s cubic-bezier(0.22, 1, 0.36, 1) forwards;
