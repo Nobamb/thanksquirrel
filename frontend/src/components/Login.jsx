@@ -7,7 +7,6 @@ import SignupModal from './SignupModal';
 import './Login.css';
 
 const getAuthSessionKey = (userId) => `auth_processed_${userId}`;
-const getHomeReadyKey = (userId) => `home_ready_${userId}`;
 
 const buildEmailSignupProfile = (user) => {
   const metadata = user.user_metadata ?? {};
@@ -86,6 +85,8 @@ async function fetchProfile(userId) {
 export default function Login() {
   const initialHashParams = new URLSearchParams(window.location.hash.slice(1));
   const initialRecoveryMode = initialHashParams.get('type') === 'recovery';
+  const hasAuthTokensInHash =
+    initialHashParams.has('access_token') || initialHashParams.has('refresh_token');
   const initialErrorDescription =
     initialHashParams.get('error_description') || initialHashParams.get('error');
   const initialError = initialErrorDescription
@@ -156,9 +157,18 @@ export default function Login() {
 
       const user = session.user;
       const sessionKey = getAuthSessionKey(user.id);
-      const homeReadyKey = getHomeReadyKey(user.id);
       const processedType = sessionStorage.getItem(sessionKey);
-      const isHomeReady = sessionStorage.getItem(homeReadyKey) === 'ready';
+
+      if (event === 'INITIAL_SESSION' && !hasAuthTokensInHash) {
+        const fetchedProfile = await fetchProfile(user.id);
+        if (fetchedProfile) {
+          setProfile(fetchedProfile);
+        }
+
+        setAppStage('home');
+        setIsSuccess(null);
+        return;
+      }
 
       if (processedType === 'login' || processedType === 'signup') {
         const fetchedProfile = await fetchProfile(user.id);
@@ -167,14 +177,8 @@ export default function Login() {
         }
 
         setIsReady(true);
-
-        if (isHomeReady) {
-          setAppStage('home');
-          setIsSuccess(null);
-        } else {
-          setAppStage('auth');
-          setIsSuccess(processedType);
-        }
+        setAppStage('auth');
+        setIsSuccess(processedType);
 
         return;
       }
@@ -222,7 +226,6 @@ export default function Login() {
           setProfile(fetchedProfile);
         }
 
-        sessionStorage.removeItem(homeReadyKey);
         sessionStorage.setItem(sessionKey, 'signup');
         triggerSuccess('signup');
         return;
@@ -250,7 +253,6 @@ export default function Login() {
         setProfile(fetchedProfile);
       }
 
-      sessionStorage.removeItem(homeReadyKey);
       sessionStorage.setItem(sessionKey, 'login');
       triggerSuccess('login');
     });
@@ -260,7 +262,7 @@ export default function Login() {
       subscription.unsubscribe();
       authProcessedRef.current = false;
     };
-  }, [initialErrorDescription]);
+  }, [hasAuthTokensInHash, initialErrorDescription]);
 
   const squirrelState = !isReady
     ? 'hidden'
@@ -380,7 +382,6 @@ export default function Login() {
         setProfile(fetchedProfile);
       }
 
-      sessionStorage.removeItem(getHomeReadyKey(session.user.id));
       sessionStorage.setItem(getAuthSessionKey(session.user.id), 'login');
     }
 
@@ -388,12 +389,6 @@ export default function Login() {
   };
 
   const handleSuccessConfirm = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (session?.user?.id) {
-      sessionStorage.setItem(getHomeReadyKey(session.user.id), 'ready');
-    }
-
     setIsSuccessLeaving(true);
 
     window.setTimeout(() => {
