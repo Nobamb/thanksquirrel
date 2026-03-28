@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase, getImageUrl } from '../lib/supabase';
+import { prepareDailyLetter } from '../lib/dailyLetter';
 import AuthenticatedHome from './AuthenticatedHome';
+import DailyLetterSequence from './DailyLetterSequence';
 import SpeechBubble from './SpeechBubble';
 import PasswordResetModal from './PasswordResetModal';
 import SignupModal from './SignupModal';
@@ -92,6 +94,7 @@ export default function Login() {
   const initialError = initialErrorDescription
     ? `OAuth 오류: ${decodeURIComponent(initialErrorDescription).replace(/\+/g, ' ')}`
     : null;
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isFocused, setIsFocused] = useState(false);
@@ -105,9 +108,27 @@ export default function Login() {
   const [isSuccessLeaving, setIsSuccessLeaving] = useState(false);
   const [appStage, setAppStage] = useState('auth');
   const [profile, setProfile] = useState(null);
+  const [dailyLetter, setDailyLetter] = useState(null);
   const [isExiting, setIsExiting] = useState(false);
   const authProcessedRef = useRef(false);
   const recoveryFlowRef = useRef(initialRecoveryMode);
+  const dailyLetterPromiseRef = useRef(null);
+
+  const beginDailyLetterPreparation = (userId) => {
+    const promise = prepareDailyLetter(userId)
+      .then((letter) => {
+        setDailyLetter(letter);
+        return letter;
+      })
+      .catch((letterError) => {
+        console.error('Daily letter preparation error:', letterError);
+        setDailyLetter(null);
+        return null;
+      });
+
+    dailyLetterPromiseRef.current = promise;
+    return promise;
+  };
 
   const triggerSuccess = (type) => {
     setIsExiting(true);
@@ -130,6 +151,8 @@ export default function Login() {
       if (!session || event === 'SIGNED_OUT') {
         authProcessedRef.current = false;
         recoveryFlowRef.current = false;
+        dailyLetterPromiseRef.current = null;
+        setDailyLetter(null);
         return;
       }
 
@@ -165,6 +188,7 @@ export default function Login() {
           setProfile(fetchedProfile);
         }
 
+        setDailyLetter(null);
         setAppStage('home');
         setIsSuccess(null);
         return;
@@ -176,10 +200,10 @@ export default function Login() {
           setProfile(fetchedProfile);
         }
 
+        beginDailyLetterPreparation(user.id);
         setIsReady(true);
         setAppStage('auth');
         setIsSuccess(processedType);
-
         return;
       }
 
@@ -226,6 +250,7 @@ export default function Login() {
           setProfile(fetchedProfile);
         }
 
+        beginDailyLetterPreparation(user.id);
         sessionStorage.setItem(sessionKey, 'signup');
         triggerSuccess('signup');
         return;
@@ -253,6 +278,7 @@ export default function Login() {
         setProfile(fetchedProfile);
       }
 
+      beginDailyLetterPreparation(user.id);
       sessionStorage.setItem(sessionKey, 'login');
       triggerSuccess('login');
     });
@@ -382,6 +408,7 @@ export default function Login() {
         setProfile(fetchedProfile);
       }
 
+      beginDailyLetterPreparation(session.user.id);
       sessionStorage.setItem(getAuthSessionKey(session.user.id), 'login');
     }
 
@@ -391,11 +418,26 @@ export default function Login() {
   const handleSuccessConfirm = async () => {
     setIsSuccessLeaving(true);
 
+    let preparedLetter = dailyLetter;
+    if (!preparedLetter && dailyLetterPromiseRef.current) {
+      preparedLetter = await dailyLetterPromiseRef.current;
+    }
+
     window.setTimeout(() => {
       setIsSuccess(null);
       setIsSuccessLeaving(false);
-      setAppStage('home');
+      if (preparedLetter) {
+        setAppStage('letter');
+      } else {
+        setAppStage('home');
+      }
     }, 450);
+  };
+
+  const handleLetterSequenceComplete = () => {
+    setDailyLetter(null);
+    dailyLetterPromiseRef.current = null;
+    setAppStage('home');
   };
 
   const getImageName = () => {
@@ -413,7 +455,7 @@ export default function Login() {
 
   const getDialogue = () => {
     if (squirrelState === 'peeking') {
-      return '다람다람! 안 보고 있으니까 걱정하지 않아도 됩니다람!';
+      return '다람다람! 안 보고 있을 거니 걱정 안 하셔도 됩니다람!';
     }
 
     return '다람다람! 용기를 내어 와 주셔서 감사합니다람!';
@@ -435,124 +477,126 @@ export default function Login() {
     <>
       {appStage === 'home' ? (
         <AuthenticatedHome profile={profile} />
+      ) : appStage === 'letter' && dailyLetter ? (
+        <DailyLetterSequence letter={dailyLetter} onComplete={handleLetterSequenceComplete} />
       ) : (
         <div
           className="login-container"
           style={{ backgroundImage: `url(${getImageUrl('background.webp')})` }}
         >
           {isSuccess ? (
-          <div className="success-screen">
-            <div className={`success-bubble-wrapper ${isSuccessLeaving ? 'is-leaving' : ''}`}>
-              <SpeechBubble
-                text={getSuccessDialogue()}
-                isVisible
-                variant="large"
-                className="large"
-                showButton
-                onButtonClick={handleSuccessConfirm}
-              />
-            </div>
-            <img
-              src={getImageUrl('character-hello.webp')}
-              alt="다람이 캐릭터"
-              className={`squirrel-img success-anim ${isSuccessLeaving ? 'is-leaving' : ''}`}
-            />
-          </div>
-          ) : (
-          <div className={`login-box ${isExiting ? 'slide-out-down' : ''}`}>
-            <div className="squirrel-container">
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '-75px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  zIndex: 20,
-                }}
-              >
-                <SpeechBubble text={getDialogue()} isVisible={isReady && !isExiting} />
+            <div className="success-screen">
+              <div className={`success-bubble-wrapper ${isSuccessLeaving ? 'is-leaving' : ''}`}>
+                <SpeechBubble
+                  text={getSuccessDialogue()}
+                  isVisible
+                  variant="large"
+                  className="large"
+                  showButton
+                  onButtonClick={handleSuccessConfirm}
+                />
               </div>
               <img
-                src={getImageUrl(getImageName())}
-                alt="다람이 캐릭터"
-                className={`squirrel-img ${squirrelState}`}
+                src={getImageUrl('character-hello.webp')}
+                alt="달램이 캐릭터"
+                className={`squirrel-img success-anim ${isSuccessLeaving ? 'is-leaving' : ''}`}
               />
             </div>
-
-            <div className="form-container">
-              <h2>환영합니다</h2>
-              <p className="subtitle">thanksquirrel</p>
-
-              <form onSubmit={handleSubmit} className="login-form">
-                {error && <div className="error-message">{error}</div>}
-
-                <div className="input-group">
-                  <label htmlFor="email">이메일</label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    placeholder="이메일을 입력해 주세요"
-                    autoComplete="email"
-                    required
-                  />
-                </div>
-
-                <div className="input-group">
-                  <label htmlFor="password">비밀번호</label>
-                  <input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    placeholder="비밀번호를 입력해 주세요"
-                    autoComplete="current-password"
-                    required
-                  />
-                </div>
-
-                <button type="submit" disabled={loading} className="login-button">
-                  {loading ? '로딩 중...' : '로그인'}
-                </button>
-              </form>
-
-              <div className="extra-links">
-                <button
-                  type="button"
-                  className="text-link"
-                  onClick={() => {
-                    setPasswordResetMode('request');
-                    setIsPasswordResetModalOpen(true);
+          ) : (
+            <div className={`login-box ${isExiting ? 'slide-out-down' : ''}`}>
+              <div className="squirrel-container">
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-75px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 20,
                   }}
                 >
-                  비밀번호 찾기
-                </button>
-                <span className="divider">|</span>
-                <button type="button" className="text-link" onClick={() => setIsSignupModalOpen(true)}>
-                  회원가입
-                </button>
+                  <SpeechBubble text={getDialogue()} isVisible={isReady && !isExiting} />
+                </div>
+                <img
+                  src={getImageUrl(getImageName())}
+                  alt="달램이 캐릭터"
+                  className={`squirrel-img ${squirrelState}`}
+                />
               </div>
 
-              <div className="sns-login">
-                <p>간편 로그인</p>
-                <div className="sns-buttons">
-                  <button className="sns-btn kakao" onClick={handleKakaoLogin} type="button">카카오</button>
-                  <button className="sns-btn naver" onClick={handleNaverLogin} type="button">네이버</button>
-                  <button className="sns-btn google" onClick={handleGoogleLogin} type="button">구글</button>
+              <div className="form-container">
+                <h2>환영합니다</h2>
+                <p className="subtitle">thanksquirrel</p>
+
+                <form onSubmit={handleSubmit} className="login-form">
+                  {error && <div className="error-message">{error}</div>}
+
+                  <div className="input-group">
+                    <label htmlFor="email">이메일</label>
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      onFocus={() => setIsFocused(true)}
+                      onBlur={() => setIsFocused(false)}
+                      placeholder="이메일을 입력해 주세요"
+                      autoComplete="email"
+                      required
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label htmlFor="password">비밀번호</label>
+                    <input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      onFocus={() => setIsFocused(true)}
+                      onBlur={() => setIsFocused(false)}
+                      placeholder="비밀번호를 입력해 주세요"
+                      autoComplete="current-password"
+                      required
+                    />
+                  </div>
+
+                  <button type="submit" disabled={loading} className="login-button">
+                    {loading ? '로딩 중...' : '로그인'}
+                  </button>
+                </form>
+
+                <div className="extra-links">
+                  <button
+                    type="button"
+                    className="text-link"
+                    onClick={() => {
+                      setPasswordResetMode('request');
+                      setIsPasswordResetModalOpen(true);
+                    }}
+                  >
+                    비밀번호 찾기
+                  </button>
+                  <span className="divider">|</span>
+                  <button type="button" className="text-link" onClick={() => setIsSignupModalOpen(true)}>
+                    회원가입
+                  </button>
+                </div>
+
+                <div className="sns-login">
+                  <p>간편 로그인</p>
+                  <div className="sns-buttons">
+                    <button className="sns-btn kakao" onClick={handleKakaoLogin} type="button">카카오</button>
+                    <button className="sns-btn naver" onClick={handleNaverLogin} type="button">네이버</button>
+                    <button className="sns-btn google" onClick={handleGoogleLogin} type="button">구글</button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
           )}
         </div>
       )}
 
-      {!isSuccess && !isExiting && (
+      {!isSuccess && !isExiting && appStage === 'auth' && (
         <>
           {isSignupModalOpen && (
             <SignupModal
