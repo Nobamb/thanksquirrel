@@ -141,3 +141,22 @@ created_at (timestamptz): 편지를 받은 날짜와 시간입니다.
 다람다람! 쓰다듬어줘서 고맙습니다람!
 
 
+
+
+## 달램이 사진 데이터(확장자명)
+
+background.webp(배경화면)
+character-hello.webp(반겨주는 이미지)
+character-secret.webp(눈을 가리는 이미지)
+character-web.webp(기본 이미지)
+character-enjoy.webp(나비랑 노는 이미지)
+character-enjoy2.webp(나비에게 작별인사하는 이미지)
+character-happy.webp(행복해하는 이미지)
+character-sad.webp(슬퍼하는 이미지)
+character-sad2.webp(시무룩해하는 이미지)
+character-sing1.webp(노래하는 이미지1)
+character-sing2.webp(노래하는 이미지2)
+character-tickle.webp(간지러워하는 이미지)
+character-web-eat.webp(쓰다듬어주는 이미지)
+character-web-eat2.webp(쓰다듬어주는 이미지)
+character-web.webp(기본 달램이 이미지)
