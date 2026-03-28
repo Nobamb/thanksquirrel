@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase, getImageUrl } from '../lib/supabase';
+import AuthenticatedHome from './AuthenticatedHome';
 import SpeechBubble from './SpeechBubble';
 import PasswordResetModal from './PasswordResetModal';
 import SignupModal from './SignupModal';
 import './Login.css';
 
 const getAuthSessionKey = (userId) => `auth_processed_${userId}`;
+const getHomeReadyKey = (userId) => `home_ready_${userId}`;
 
 const buildEmailSignupProfile = (user) => {
   const metadata = user.user_metadata ?? {};
@@ -66,6 +68,21 @@ async function insertProfile(user, profile) {
   ]);
 }
 
+async function fetchProfile(userId) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('email, nickname, avatar_url')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('Profile fetch error:', error);
+    return null;
+  }
+
+  return data;
+}
+
 export default function Login() {
   const initialHashParams = new URLSearchParams(window.location.hash.slice(1));
   const initialRecoveryMode = initialHashParams.get('type') === 'recovery';
@@ -84,6 +101,9 @@ export default function Login() {
   const [isPasswordResetModalOpen, setIsPasswordResetModalOpen] = useState(initialRecoveryMode);
   const [passwordResetMode, setPasswordResetMode] = useState(initialRecoveryMode ? 'update' : 'request');
   const [isSuccess, setIsSuccess] = useState(null);
+  const [isSuccessLeaving, setIsSuccessLeaving] = useState(false);
+  const [appStage, setAppStage] = useState('auth');
+  const [profile, setProfile] = useState(null);
   const [isExiting, setIsExiting] = useState(false);
   const authProcessedRef = useRef(false);
   const recoveryFlowRef = useRef(initialRecoveryMode);
@@ -136,11 +156,26 @@ export default function Login() {
 
       const user = session.user;
       const sessionKey = getAuthSessionKey(user.id);
+      const homeReadyKey = getHomeReadyKey(user.id);
       const processedType = sessionStorage.getItem(sessionKey);
+      const isHomeReady = sessionStorage.getItem(homeReadyKey) === 'ready';
 
       if (processedType === 'login' || processedType === 'signup') {
+        const fetchedProfile = await fetchProfile(user.id);
+        if (fetchedProfile) {
+          setProfile(fetchedProfile);
+        }
+
         setIsReady(true);
-        setIsSuccess(processedType);
+
+        if (isHomeReady) {
+          setAppStage('home');
+          setIsSuccess(null);
+        } else {
+          setAppStage('auth');
+          setIsSuccess(processedType);
+        }
+
         return;
       }
 
@@ -182,6 +217,12 @@ export default function Login() {
           return;
         }
 
+        const fetchedProfile = await fetchProfile(user.id);
+        if (fetchedProfile) {
+          setProfile(fetchedProfile);
+        }
+
+        sessionStorage.removeItem(homeReadyKey);
         sessionStorage.setItem(sessionKey, 'signup');
         triggerSuccess('signup');
         return;
@@ -204,6 +245,12 @@ export default function Login() {
         console.error('Profile update error:', updateError);
       }
 
+      const fetchedProfile = await fetchProfile(user.id);
+      if (fetchedProfile) {
+        setProfile(fetchedProfile);
+      }
+
+      sessionStorage.removeItem(homeReadyKey);
       sessionStorage.setItem(sessionKey, 'login');
       triggerSuccess('login');
     });
@@ -328,10 +375,32 @@ export default function Login() {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (session?.user?.id) {
+      const fetchedProfile = await fetchProfile(session.user.id);
+      if (fetchedProfile) {
+        setProfile(fetchedProfile);
+      }
+
+      sessionStorage.removeItem(getHomeReadyKey(session.user.id));
       sessionStorage.setItem(getAuthSessionKey(session.user.id), 'login');
     }
 
     triggerSuccess('login');
+  };
+
+  const handleSuccessConfirm = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (session?.user?.id) {
+      sessionStorage.setItem(getHomeReadyKey(session.user.id), 'ready');
+    }
+
+    setIsSuccessLeaving(true);
+
+    window.setTimeout(() => {
+      setIsSuccess(null);
+      setIsSuccessLeaving(false);
+      setAppStage('home');
+    }, 450);
   };
 
   const getImageName = () => {
@@ -369,40 +438,32 @@ export default function Login() {
 
   return (
     <>
-      <div
-        className="login-container"
-        style={{ backgroundImage: `url(${getImageUrl('background.webp')})` }}
-      >
-        {isSuccess ? (
+      {appStage === 'home' ? (
+        <AuthenticatedHome profile={profile} />
+      ) : (
+        <div
+          className="login-container"
+          style={{ backgroundImage: `url(${getImageUrl('background.webp')})` }}
+        >
+          {isSuccess ? (
           <div className="success-screen">
-            <div className="success-bubble-wrapper">
+            <div className={`success-bubble-wrapper ${isSuccessLeaving ? 'is-leaving' : ''}`}>
               <SpeechBubble
                 text={getSuccessDialogue()}
                 isVisible
                 variant="large"
                 className="large"
                 showButton
-                onButtonClick={async () => {
-                  const { data: { session } } = await supabase.auth.getSession();
-
-                  if (session?.user?.id) {
-                    sessionStorage.removeItem(getAuthSessionKey(session.user.id));
-                  }
-
-                  await supabase.auth.signOut();
-                  setIsSuccess(null);
-                  setIsReady(false);
-                  setTimeout(() => setIsReady(true), 100);
-                }}
+                onButtonClick={handleSuccessConfirm}
               />
             </div>
             <img
               src={getImageUrl('character-hello.webp')}
               alt="다람이 캐릭터"
-              className="squirrel-img success-anim"
+              className={`squirrel-img success-anim ${isSuccessLeaving ? 'is-leaving' : ''}`}
             />
           </div>
-        ) : (
+          ) : (
           <div className={`login-box ${isExiting ? 'slide-out-down' : ''}`}>
             <div className="squirrel-container">
               <div
@@ -492,8 +553,9 @@ export default function Login() {
               </div>
             </div>
           </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {!isSuccess && !isExiting && (
         <>

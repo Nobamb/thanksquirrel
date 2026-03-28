@@ -230,9 +230,25 @@
   animation-delay: 0.1s;
 }
 
+.success-bubble-wrapper.is-leaving {
+  animation: successBubbleLeave 0.45s ease forwards;
+}
+
 @keyframes popIn {
   from { transform: scale(0.8); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes successBubbleLeave {
+  from {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+
+  to {
+    transform: translateY(180px) scale(0.96);
+    opacity: 0;
+  }
 }
 
 .squirrel-img.success-anim {
@@ -245,6 +261,22 @@
   animation-delay: 0.3s;
 }
 
+.squirrel-img.success-anim.is-leaving {
+  animation: successCharacterLeave 0.45s ease forwards;
+}
+
 @keyframes slideUpFromBottom {
   to { bottom: -24px; }
+}
+
+@keyframes successCharacterLeave {
+  from {
+    bottom: -24px;
+    opacity: 1;
+  }
+
+  to {
+    bottom: -320px;
+    opacity: 0;
+  }
 }
