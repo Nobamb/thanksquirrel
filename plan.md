@@ -198,3 +198,16 @@ installHook.js:1 Daily letter preparation error: Object
 13-2. 그리고 간편 로그인 같은 경우에는 회원탈퇴 후에 다시 로그인을 진행하면 is_active가 false로 되어있어서 로그인이 안되거든, 간편 로그인의 경우에는 회원탈퇴 진행하면 is_active를 true로 변경하도록 수정좀 진행해줘
 
 13-3. 이번에는 회원탈퇴한 상태에서 다시 구글 로그인을 통해 접속을 하게 되니까 복귀 메세지가 아닌 로그인 환영 대사를 하는데 is_active가 false에서 true로 변한 상태, 즉 다시 복귀한 경우에는 복귀 메세지("다람다람! 다시 와주셔서 감사합니다람! 정말 기다리고 있었습니다람!")를 보여주도록 수정좀 진행해줘
+
+
+14. 이번에는 마이페이지에서 정보들을 입력하면 해당 정보들로 바뀌게 수정해, 일단 profile 데이터베이스에 해당 유저의 데이터 관련 정보가 변경되도록 해야 돼 각각 hobby(text) : 취미
+specility(text) : 특기
+gender : 성별(기본값 비밀)
+mbti : mbti값(기본 infp)
+nickname : 별명(기본값 이메일 앞자리)
+avatar_url : 프로필 이미지(기본값 null)를 바꿀 수 있도록 해야돼
+
+취미, 특기, 성별, mbti, 별명, 프로필 이미지를 바꿀 수 있고, 프로필 이미지는 일단 storage에 저장이 되면서(profile_images 스토리지에 저장) 그 storage의 url을 유저 profile 데이터베이스에 avatar_url에서 변경해야 돼, 프로필로 지정한 사진의 용량이 만약에 100kb 초과라면 browser-image-compression를 통해서(https://github.com/DonaldTsai/browser-image-compression 직접 설치해서 사용해야 돼) 용량을 줄여서 저장을 해야돼, 그리고 프로필로 지정한 사진의 용량이 100kb 이하라면 그냥 저장을 하면 돼
+
+
+14-1(예정). 지금 마이페이지에서 프로필 사진을 업로드하면 "프로필 이미지를 업로드하지 못했어요. 다시 시도해 주세요."라는 오류 메세지가 뜨면서 제대로 이미지가 storage랑 profile table에 저장이 되지 않은 상황이야 profile_images 스토리지는 이미 만들어진 상태고, public도 걸어놓은 상태라서 다시 한번 제대로 storage랑 테이블에 이미지 url이 변경되면서 실제 프로필 사진도 변경되도록 수정해
