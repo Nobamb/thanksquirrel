@@ -7,6 +7,7 @@ const KST_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
   day: '2-digit',
 });
 const inFlightPreparations = new Map();
+export const LETTER_CATALOG_SIZE = 500;
 
 function buildLettersEndpoint() {
   const configuredBaseUrl = import.meta.env.VITE_LETTERS_API_URL?.trim();
@@ -135,6 +136,48 @@ async function fetchAllLetters() {
   }
 
   return letters;
+}
+
+export async function fetchLetterCatalog() {
+  const letters = await fetchAllLetters();
+  const lettersById = new Map(letters.map((letter) => [letter.id, letter]));
+
+  return Array.from({ length: LETTER_CATALOG_SIZE }, (_, index) => {
+    const id = index + 1;
+    const existingLetter = lettersById.get(id);
+
+    return {
+      id,
+      message: existingLetter?.message ?? '',
+    };
+  });
+}
+
+export async function fetchReceivedLetterIds(profileIdentifier) {
+  if (!profileIdentifier) {
+    const error = new Error('profile id is required.');
+    error.code = 'missing_profile_id';
+    throw error;
+  }
+
+  const userId = await resolveUserId(profileIdentifier);
+  const { data, error } = await supabase
+    .from('user_letters')
+    .select('letter_id')
+    .eq('user_id', userId)
+    .order('letter_id', { ascending: true });
+
+  if (error) {
+    throw error;
+  }
+
+  return Array.from(
+    new Set(
+      (data ?? [])
+        .map((entry) => Number(entry.letter_id))
+        .filter((letterId) => Number.isFinite(letterId)),
+    ),
+  );
 }
 
 async function markProfileCheckedIn(userId) {
