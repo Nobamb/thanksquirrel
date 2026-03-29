@@ -7,6 +7,7 @@ const KST_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
   day: '2-digit',
 });
 const inFlightPreparations = new Map();
+const completedPreparations = new Map();
 export const LETTER_CATALOG_SIZE = 500;
 
 function buildLettersEndpoint() {
@@ -208,6 +209,10 @@ export async function prepareDailyLetter(profileIdentifier) {
     return inFlightPreparations.get(preparationKey);
   }
 
+  if (completedPreparations.has(preparationKey)) {
+    return completedPreparations.get(preparationKey);
+  }
+
   const preparationPromise = (async () => {
     const [{ data: profile, error: profileError }, { data: history, error: historyError }, letters] = await Promise.all([
       supabase
@@ -285,7 +290,9 @@ export async function prepareDailyLetter(profileIdentifier) {
   inFlightPreparations.set(preparationKey, preparationPromise);
 
   try {
-    return await preparationPromise;
+    const result = await preparationPromise;
+    completedPreparations.set(preparationKey, result);
+    return result;
   } finally {
     inFlightPreparations.delete(preparationKey);
   }
