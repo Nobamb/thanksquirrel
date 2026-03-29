@@ -31,11 +31,11 @@
   width: 100%;
   height: auto;
   display: block;
-  filter: drop-shadow(0 20px 36px rgba(143, 100, 53, 0.18));
+  filter: drop-shadow(0 18px 28px rgba(193, 160, 117, 0.18));
 }
 
 .letter-envelope-svg--flap {
-  filter: none;
+  filter: drop-shadow(0 6px 10px rgba(222, 187, 142, 0.16));
 }
 
 .letter-envelope-flap {

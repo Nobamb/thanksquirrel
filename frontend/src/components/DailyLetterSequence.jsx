@@ -9,34 +9,40 @@ function EnvelopeIllustration({ isOpen }) {
       <svg className="letter-envelope-svg letter-envelope-svg--base" viewBox="0 0 360 280">
         <defs>
           <linearGradient id="envelopeBody" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#fff8ee" />
-            <stop offset="100%" stopColor="#f4ddc3" />
+            <stop offset="0%" stopColor="#fffaf2" />
+            <stop offset="55%" stopColor="#fff2df" />
+            <stop offset="100%" stopColor="#f9e4c6" />
           </linearGradient>
-          <linearGradient id="envelopePocket" x1="50%" y1="0%" x2="50%" y2="100%">
-            <stop offset="0%" stopColor="#fff6ea" />
-            <stop offset="100%" stopColor="#f9e9d3" />
+          <radialGradient id="envelopeGlow" cx="50%" cy="46%" r="72%">
+            <stop offset="0%" stopColor="rgba(255, 223, 184, 0.78)" />
+            <stop offset="68%" stopColor="rgba(255, 236, 209, 0.22)" />
+            <stop offset="100%" stopColor="rgba(255, 236, 209, 0)" />
+          </radialGradient>
+          <linearGradient id="envelopeStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ddbc91" />
+            <stop offset="100%" stopColor="#e7c79d" />
           </linearGradient>
         </defs>
 
-        <ellipse cx="180" cy="236" rx="118" ry="24" fill="rgba(185, 140, 88, 0.18)" />
-        <path d="M48 76H312V224H48Z" fill="url(#envelopeBody)" stroke="#d8b691" strokeWidth="4" />
-        <path d="M68 96H292V134H68Z" fill="url(#envelopePocket)" opacity="0.9" />
-        <path d="M48 76H312" fill="none" stroke="#d8b691" strokeWidth="4" strokeLinecap="round" />
-        <path d="M48 224L132 146" fill="none" stroke="#e6c7a6" strokeWidth="4" strokeLinecap="round" />
-        <path d="M312 224L228 146" fill="none" stroke="#e6c7a6" strokeWidth="4" strokeLinecap="round" />
-        <path d="M92 118H268" fill="none" stroke="#edd7ba" strokeWidth="4" strokeLinecap="round" />
+        <ellipse cx="180" cy="236" rx="128" ry="26" fill="rgba(216, 184, 140, 0.22)" />
+        <rect x="48" y="76" width="264" height="148" fill="url(#envelopeBody)" rx="0" />
+        <rect x="48" y="76" width="264" height="148" fill="url(#envelopeGlow)" rx="0" opacity="0.82" />
+        <rect x="48" y="76" width="264" height="148" fill="none" stroke="url(#envelopeStroke)" strokeWidth="4.5" />
+        <path d="M52 220L142 136" fill="none" stroke="#e3c194" strokeWidth="4.5" strokeLinecap="round" />
+        <path d="M308 220L218 136" fill="none" stroke="#e3c194" strokeWidth="4.5" strokeLinecap="round" />
+        <path d="M142 136L180 170L218 136" fill="none" stroke="#e3c194" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
 
       <div className={`letter-envelope-flap ${isOpen ? 'is-open' : ''}`}>
         <svg className="letter-envelope-svg letter-envelope-svg--flap" viewBox="0 0 360 280">
           <defs>
             <linearGradient id="envelopeFlap" x1="50%" y1="0%" x2="50%" y2="100%">
-              <stop offset="0%" stopColor="#ffe8cc" />
-              <stop offset="100%" stopColor="#f4cfa5" />
+              <stop offset="0%" stopColor="#ffe8c9" />
+              <stop offset="100%" stopColor="#ffd8a7" />
             </linearGradient>
           </defs>
 
-          <path d="M48 76L180 154L312 76H48Z" fill="url(#envelopeFlap)" stroke="#d8b691" strokeWidth="4" />
+          <path d="M48 76L180 154L312 76H48Z" fill="url(#envelopeFlap)" stroke="#e1bf93" strokeWidth="4.5" />
         </svg>
       </div>
     </div>
