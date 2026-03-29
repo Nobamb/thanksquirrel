@@ -70,7 +70,7 @@ async function insertProfile(user, profile) {
 async function fetchProfile(userId) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, user_id, email, nickname, avatar_url')
+    .select('id, user_id, email, nickname, avatar_url, gender, mbti, hobby, specialty, is_active')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -216,8 +216,15 @@ export default function Login() {
       if (!session || event === 'SIGNED_OUT') {
         authProcessedRef.current = false;
         recoveryFlowRef.current = false;
+        setProfile(null);
         resetDailyLetterState();
         clearPendingAuthFlow();
+        setAppStage('auth');
+        setIsSuccess(null);
+        setIsSuccessLeaving(false);
+        setIsExiting(false);
+        setLoading(false);
+        setError(null);
         return;
       }
 
@@ -256,7 +263,7 @@ export default function Login() {
       const provider = user.app_metadata?.provider || 'unknown';
       const { data: existingProfile, error: profileLookupError } = await supabase
         .from('profiles')
-        .select('id, user_id')
+        .select('id, user_id, is_active')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -304,12 +311,21 @@ export default function Login() {
         successType = 'signup';
       }
 
+      const profileUpdates = {};
+
       if (user.email) {
+        profileUpdates.email = user.email.toLowerCase();
+      }
+
+      if (existingProfile && existingProfile.is_active === false) {
+        profileUpdates.is_active = true;
+        successType = 'reactivated';
+      }
+
+      if (Object.keys(profileUpdates).length > 0) {
         const { error: updateError } = await supabase
           .from('profiles')
-          .update({
-            email: user.email.toLowerCase(),
-          })
+          .update(profileUpdates)
           .eq('user_id', user.id);
 
         if (updateError) {
@@ -536,6 +552,10 @@ export default function Login() {
       return '다람다람! 처음이라 쉽지 않을텐데 용기내서 우리 동네 와주셔서 정말 감사합니다람!\n수고 많으셨을텐데 우선 우리 동네에서 푹 쉬고 있어주시면 좋겠습니다람!';
     }
 
+    if (isSuccess === 'reactivated') {
+      return '다람다람! 다시 와주셔서 감사합니다람!\n정말 기다리고 있었습니다람!';
+    }
+
     return '다람다람! 우리 동네 사람이었다람!\n편히 쉬시면 좋겠습니다람!';
   };
 
@@ -574,7 +594,7 @@ export default function Login() {
   return (
     <>
       {appStage === 'home' ? (
-        <AuthenticatedHome profile={profile} />
+        <AuthenticatedHome profile={profile} onProfileUpdated={setProfile} />
       ) : appStage === 'letter' && dailyLetter ? (
         <DailyLetterSequence letter={dailyLetter} onComplete={handleLetterSequenceComplete} />
       ) : (
