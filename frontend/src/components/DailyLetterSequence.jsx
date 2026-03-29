@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import './DailyLetterSequence.css';
 
 const INTRO_TEXT = '다람다람! 늘 감사합니다람! 소중한 사람에게 온 편지가 왔습니다람! 한번 읽어보면 좋겠습니다람!';
@@ -79,8 +79,22 @@ function EnvelopeIllustration({ isOpen }) {
   );
 }
 
-export default function DailyLetterSequence({ letter, onComplete }) {
-  const [phase, setPhase] = useState('notice');
+export default function DailyLetterSequence({ letter, onComplete, mode = 'daily' }) {
+  const [phase, setPhase] = useState(mode === 'preview' ? 'opening' : 'notice');
+
+  useEffect(() => {
+    if (mode !== 'preview') {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      setPhase('reading');
+    }, 760);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [mode]);
 
   const handleNoticeConfirm = () => {
     setPhase('opening');
@@ -108,7 +122,7 @@ export default function DailyLetterSequence({ letter, onComplete }) {
         <EnvelopeIllustration isOpen={isEnvelopeOpen} />
       </div>
 
-      {(phase === 'notice' || phase === 'opening') && (
+      {mode !== 'preview' && (phase === 'notice' || phase === 'opening') && (
         <div className={`daily-letter-intro ${phase === 'opening' ? 'is-leaving' : ''}`}>
           <p>{INTRO_TEXT}</p>
           <button type="button" onClick={handleNoticeConfirm}>
