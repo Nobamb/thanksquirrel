@@ -55,6 +55,23 @@ function toKstDateKey(dateValue) {
   return KST_DATE_FORMATTER.format(date);
 }
 
+function toTimestamp(dateValue) {
+  const date = new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.getTime();
+}
+
+function isSameMoment(leftValue, rightValue) {
+  const leftTimestamp = toTimestamp(leftValue);
+  const rightTimestamp = toTimestamp(rightValue);
+
+  return leftTimestamp !== null && rightTimestamp !== null && leftTimestamp === rightTimestamp;
+}
+
 function isUuid(value) {
   return (
     typeof value === 'string' &&
@@ -119,6 +136,19 @@ async function fetchAllLetters() {
   return letters;
 }
 
+async function markProfileCheckedIn(userId) {
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      last_check_in_at: new Date().toISOString(),
+    })
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('Profile last_check_in_at update error:', error);
+  }
+}
+
 export async function prepareDailyLetter(profileIdentifier) {
   if (!profileIdentifier) {
     const error = new Error('profile id is required.');
@@ -129,13 +159,22 @@ export async function prepareDailyLetter(profileIdentifier) {
   const userId = await resolveUserId(profileIdentifier);
   const todayKstKey = toKstDateKey(new Date());
 
-  const [{ data: history, error: historyError }, letters] = await Promise.all([
+  const [{ data: profile, error: profileError }, { data: history, error: historyError }, letters] = await Promise.all([
+    supabase
+      .from('profiles')
+      .select('created_at, last_check_in_at')
+      .eq('user_id', userId)
+      .maybeSingle(),
     supabase
       .from('user_letters')
       .select('letter_id, created_at')
       .eq('user_id', userId),
     fetchAllLetters(),
   ]);
+
+  if (profileError) {
+    throw profileError;
+  }
 
   if (historyError) {
     throw historyError;
@@ -149,7 +188,15 @@ export async function prepareDailyLetter(profileIdentifier) {
     (entry) => toKstDateKey(entry.created_at) === todayKstKey,
   );
 
-  if (hasReceivedToday) {
+  const checkedInToday = toKstDateKey(profile?.last_check_in_at) === todayKstKey;
+  const isInitialProfileCheckIn =
+    checkedInToday &&
+    !hasReceivedToday &&
+    isSameMoment(profile?.created_at, profile?.last_check_in_at);
+
+  if (hasReceivedToday || (checkedInToday && !isInitialProfileCheckIn)) {
+    await markProfileCheckedIn(userId);
+
     return {
       status: 'already_received',
       letter: null,
@@ -176,6 +223,8 @@ export async function prepareDailyLetter(profileIdentifier) {
   if (insertError) {
     throw insertError;
   }
+
+  await markProfileCheckedIn(userId);
 
   return {
     status: 'ready',

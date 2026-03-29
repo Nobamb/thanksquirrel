@@ -285,21 +285,17 @@ export default function Login() {
         successType = 'signup';
       }
 
-      const updatePayload = {
-        last_check_in_at: new Date().toISOString(),
-      };
-
       if (user.email) {
-        updatePayload.email = user.email.toLowerCase();
-      }
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({
+            email: user.email.toLowerCase(),
+          })
+          .eq('user_id', user.id);
 
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update(updatePayload)
-        .eq('user_id', user.id);
-
-      if (updateError) {
-        console.error('Profile update error:', updateError);
+        if (updateError) {
+          console.error('Profile update error:', updateError);
+        }
       }
 
       const fetchedProfile = await fetchProfile(user.id);
