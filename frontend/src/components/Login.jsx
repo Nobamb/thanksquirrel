@@ -161,6 +161,7 @@ export default function Login() {
   const dailyLetterPromiseRef = useRef(null);
   const activeProfileIdRef = useRef(null);
   const signOutErrorMessageRef = useRef(null);
+  const reactivatedSuccessRef = useRef(false);
 
   const resetDailyLetterState = () => {
     dailyLetterPromiseRef.current = null;
@@ -199,13 +200,15 @@ export default function Login() {
   };
 
   const showSuccessStage = (type) => {
+    const resolvedType = reactivatedSuccessRef.current ? 'reactivated' : type;
+
     setLoading(false);
     setError(null);
     setIsSuccessLeaving(false);
     setIsExiting(true);
 
     window.setTimeout(() => {
-      setIsSuccess(type);
+      setIsSuccess(resolvedType);
       setIsExiting(false);
     }, 500);
   };
@@ -226,6 +229,7 @@ export default function Login() {
       if (!session || event === 'SIGNED_OUT') {
         authProcessedRef.current = false;
         recoveryFlowRef.current = false;
+        reactivatedSuccessRef.current = false;
         setProfile(null);
         resetDailyLetterState();
         clearPendingAuthFlow();
@@ -256,6 +260,7 @@ export default function Login() {
       }
 
       authProcessedRef.current = true;
+      reactivatedSuccessRef.current = false;
 
       const user = session.user;
       const pendingAuthFlow = getPendingAuthFlow();
@@ -332,6 +337,7 @@ export default function Login() {
         }
 
         successType = 'reactivated';
+        reactivatedSuccessRef.current = true;
       } else if (existingProfile?.is_active === false) {
         signOutErrorMessageRef.current = '회원탈퇴한 계정은 로그인할 수 없어요.';
         clearPendingAuthFlow();
