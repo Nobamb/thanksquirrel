@@ -22,6 +22,11 @@
   animation: envelopeRise 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
+.letter-envelope-scene {
+  position: relative;
+  width: 100%;
+}
+
 .letter-envelope-svg {
   width: 100%;
   height: auto;
@@ -29,14 +34,20 @@
   filter: drop-shadow(0 20px 36px rgba(143, 100, 53, 0.18));
 }
 
-.letter-envelope-svg__flap {
-  transform-box: fill-box;
-  transform-origin: center top;
-  transition: transform 0.7s cubic-bezier(0.2, 0.9, 0.2, 1);
+.letter-envelope-svg--flap {
+  filter: none;
 }
 
-.letter-envelope-svg__flap.is-open {
-  transform: rotateX(180deg);
+.letter-envelope-flap {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 27%;
+  transition: transform 0.7s cubic-bezier(0.2, 0.9, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.letter-envelope-flap.is-open {
+  transform: perspective(900px) rotateX(180deg);
 }
 
 .daily-letter-intro {
