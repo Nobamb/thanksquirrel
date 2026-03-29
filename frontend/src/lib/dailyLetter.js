@@ -6,6 +6,7 @@ const KST_DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
   month: '2-digit',
   day: '2-digit',
 });
+const inFlightPreparations = new Map();
 
 function buildLettersEndpoint() {
   const configuredBaseUrl = import.meta.env.VITE_LETTERS_API_URL?.trim();
@@ -158,76 +159,91 @@ export async function prepareDailyLetter(profileIdentifier) {
 
   const userId = await resolveUserId(profileIdentifier);
   const todayKstKey = toKstDateKey(new Date());
+  const preparationKey = `${userId}:${todayKstKey}`;
 
-  const [{ data: profile, error: profileError }, { data: history, error: historyError }, letters] = await Promise.all([
-    supabase
-      .from('profiles')
-      .select('created_at, last_check_in_at')
-      .eq('user_id', userId)
-      .maybeSingle(),
-    supabase
-      .from('user_letters')
-      .select('letter_id, created_at')
-      .eq('user_id', userId),
-    fetchAllLetters(),
-  ]);
-
-  if (profileError) {
-    throw profileError;
+  if (inFlightPreparations.has(preparationKey)) {
+    return inFlightPreparations.get(preparationKey);
   }
 
-  if (historyError) {
-    throw historyError;
-  }
+  const preparationPromise = (async () => {
+    const [{ data: profile, error: profileError }, { data: history, error: historyError }, letters] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('created_at, last_check_in_at')
+        .eq('user_id', userId)
+        .maybeSingle(),
+      supabase
+        .from('user_letters')
+        .select('letter_id, created_at')
+        .eq('user_id', userId),
+      fetchAllLetters(),
+    ]);
 
-  if (!letters.length) {
-    return null;
-  }
+    if (profileError) {
+      throw profileError;
+    }
 
-  const hasReceivedToday = (history ?? []).some(
-    (entry) => toKstDateKey(entry.created_at) === todayKstKey,
-  );
+    if (historyError) {
+      throw historyError;
+    }
 
-  const checkedInToday = toKstDateKey(profile?.last_check_in_at) === todayKstKey;
-  const isInitialProfileCheckIn =
-    checkedInToday &&
-    !hasReceivedToday &&
-    isSameMoment(profile?.created_at, profile?.last_check_in_at);
+    if (!letters.length) {
+      return null;
+    }
 
-  if (hasReceivedToday || (checkedInToday && !isInitialProfileCheckIn)) {
+    const hasReceivedToday = (history ?? []).some(
+      (entry) => toKstDateKey(entry.created_at) === todayKstKey,
+    );
+
+    const checkedInToday = toKstDateKey(profile?.last_check_in_at) === todayKstKey;
+    const isInitialProfileCheckIn =
+      checkedInToday &&
+      !hasReceivedToday &&
+      isSameMoment(profile?.created_at, profile?.last_check_in_at);
+
+    if (hasReceivedToday || (checkedInToday && !isInitialProfileCheckIn)) {
+      await markProfileCheckedIn(userId);
+
+      return {
+        status: 'already_received',
+        letter: null,
+      };
+    }
+
+    const receivedLetterIds = new Set(
+      (history ?? [])
+        .map((entry) => Number(entry.letter_id))
+        .filter((letterId) => Number.isFinite(letterId)),
+    );
+
+    const unseenLetters = letters.filter((letter) => !receivedLetterIds.has(letter.id));
+    const candidateLetters = unseenLetters.length ? unseenLetters : letters;
+    const selectedLetter = candidateLetters[Math.floor(Math.random() * candidateLetters.length)];
+
+    const { error: insertError } = await supabase.from('user_letters').insert([
+      {
+        user_id: userId,
+        letter_id: selectedLetter.id,
+      },
+    ]);
+
+    if (insertError) {
+      throw insertError;
+    }
+
     await markProfileCheckedIn(userId);
 
     return {
-      status: 'already_received',
-      letter: null,
+      status: 'ready',
+      letter: selectedLetter,
     };
+  })();
+
+  inFlightPreparations.set(preparationKey, preparationPromise);
+
+  try {
+    return await preparationPromise;
+  } finally {
+    inFlightPreparations.delete(preparationKey);
   }
-
-  const receivedLetterIds = new Set(
-    (history ?? [])
-      .map((entry) => Number(entry.letter_id))
-      .filter((letterId) => Number.isFinite(letterId)),
-  );
-
-  const unseenLetters = letters.filter((letter) => !receivedLetterIds.has(letter.id));
-  const candidateLetters = unseenLetters.length ? unseenLetters : letters;
-  const selectedLetter = candidateLetters[Math.floor(Math.random() * candidateLetters.length)];
-
-  const { error: insertError } = await supabase.from('user_letters').insert([
-    {
-      user_id: userId,
-      letter_id: selectedLetter.id,
-    },
-  ]);
-
-  if (insertError) {
-    throw insertError;
-  }
-
-  await markProfileCheckedIn(userId);
-
-  return {
-    status: 'ready',
-    letter: selectedLetter,
-  };
 }
