@@ -111,20 +111,78 @@ const AUTO_ACTIONS = [
 
 function LetterIcon() {
   return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
+    <svg viewBox="0 0 360 280" aria-hidden="true">
+      <defs>
+        <linearGradient id="headerEnvelopeBody" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#fffaf2" />
+          <stop offset="55%" stopColor="#fff2df" />
+          <stop offset="100%" stopColor="#f9e4c6" />
+        </linearGradient>
+        <linearGradient id="headerEnvelopeSideLeft" x1="0%" y1="50%" x2="100%" y2="50%">
+          <stop offset="0%" stopColor="#fff8ee" />
+          <stop offset="100%" stopColor="#f6e1c0" />
+        </linearGradient>
+        <linearGradient id="headerEnvelopeSideRight" x1="100%" y1="50%" x2="0%" y2="50%">
+          <stop offset="0%" stopColor="#fff8ee" />
+          <stop offset="100%" stopColor="#f6e1c0" />
+        </linearGradient>
+        <linearGradient id="headerEnvelopeFrontFlap" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stopColor="#fff9ef" />
+          <stop offset="100%" stopColor="#f5ddbb" />
+        </linearGradient>
+        <radialGradient id="headerEnvelopeGlow" cx="50%" cy="46%" r="72%">
+          <stop offset="0%" stopColor="rgba(255, 223, 184, 0.78)" />
+          <stop offset="68%" stopColor="rgba(255, 236, 209, 0.22)" />
+          <stop offset="100%" stopColor="rgba(255, 236, 209, 0)" />
+        </radialGradient>
+        <linearGradient id="headerEnvelopeStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#ddbc91" />
+          <stop offset="100%" stopColor="#e7c79d" />
+        </linearGradient>
+        <linearGradient id="headerEnvelopeFlap" x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="0%" stopColor="#ffe8c9" />
+          <stop offset="100%" stopColor="#ffd8a7" />
+        </linearGradient>
+      </defs>
+
+      <ellipse cx="180" cy="236" rx="128" ry="26" fill="rgba(216, 184, 140, 0.22)" />
+      <rect x="48" y="76" width="264" height="148" fill="url(#headerEnvelopeBody)" rx="0" />
+      <rect x="48" y="76" width="264" height="148" fill="url(#headerEnvelopeGlow)" rx="0" opacity="0.82" />
       <path
-        d="M4.5 6.75h15a1.75 1.75 0 0 1 1.75 1.75v7a1.75 1.75 0 0 1-1.75 1.75h-15A1.75 1.75 0 0 1 2.75 15.5v-7A1.75 1.75 0 0 1 4.5 6.75Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.6"
+        d="M52 80L180 168L52 220Z"
+        fill="url(#headerEnvelopeSideLeft)"
+        stroke="#e3c194"
+        strokeWidth="4.5"
+        strokeLinejoin="round"
       />
       <path
-        d="m4 8 8 5.5L20 8"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
+        d="M308 80L180 168L308 220Z"
+        fill="url(#headerEnvelopeSideRight)"
+        stroke="#e3c194"
+        strokeWidth="4.5"
         strokeLinejoin="round"
-        strokeWidth="1.6"
+      />
+      <path
+        d="M52 220L180 136L308 220Z"
+        fill="url(#headerEnvelopeFrontFlap)"
+        stroke="#e3c194"
+        strokeWidth="4.5"
+        strokeLinejoin="round"
+      />
+      <rect
+        x="48"
+        y="76"
+        width="264"
+        height="148"
+        fill="none"
+        stroke="url(#headerEnvelopeStroke)"
+        strokeWidth="4.5"
+      />
+      <path
+        d="M48 76L180 154L312 76H48Z"
+        fill="url(#headerEnvelopeFlap)"
+        stroke="#e1bf93"
+        strokeWidth="4.5"
       />
     </svg>
   );
