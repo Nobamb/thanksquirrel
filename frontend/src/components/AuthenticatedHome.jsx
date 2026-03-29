@@ -1,7 +1,9 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
-import { getImageUrl, getWebpageImageUrl } from '../lib/supabase';
+import { getImageUrl, getWebpageImageUrl, supabase } from '../lib/supabase';
 import LetterListModal from './LetterListModal';
+import ProfileSettingsModal from './ProfileSettingsModal';
 import SpeechBubble from './SpeechBubble';
+import WithdrawConfirmModal from './WithdrawConfirmModal';
 import './AuthenticatedHome.css';
 
 const ACTION_INTERVAL_MS = 20_000;
@@ -188,8 +190,13 @@ function LetterIcon() {
   );
 }
 
-export default function AuthenticatedHome({ profile }) {
+export default function AuthenticatedHome({ profile, onProfileUpdated }) {
   const [isLetterListOpen, setIsLetterListOpen] = useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isProfileSettingsOpen, setIsProfileSettingsOpen] = useState(false);
+  const [isWithdrawConfirmOpen, setIsWithdrawConfirmOpen] = useState(false);
+  const [withdrawError, setWithdrawError] = useState('');
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [characterFrame, setCharacterFrame] = useState({
     ...IDLE_FRAME,
     imageIndex: 0,
@@ -201,6 +208,8 @@ export default function AuthenticatedHome({ profile }) {
   const currentActionRef = useRef('idle');
   const currentFrameRef = useRef(IDLE_FRAME);
   const pointerStateRef = useRef(null);
+  const profileMenuRef = useRef(null);
+  const profileButtonRef = useRef(null);
   const profileImageSrc = profile?.avatar_url || getWebpageImageUrl('character-icon.png');
   const displayName = profile?.nickname || profile?.email?.split('@')[0] || '고마운 친구';
 
@@ -385,6 +394,28 @@ export default function AuthenticatedHome({ profile }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isProfileMenuOpen) {
+      return undefined;
+    }
+
+    const handlePointerDownOutside = (event) => {
+      const target = event.target;
+
+      if (profileMenuRef.current?.contains(target) || profileButtonRef.current?.contains(target)) {
+        return;
+      }
+
+      setIsProfileMenuOpen(false);
+    };
+
+    window.addEventListener('mousedown', handlePointerDownOutside);
+
+    return () => {
+      window.removeEventListener('mousedown', handlePointerDownOutside);
+    };
+  }, [isProfileMenuOpen]);
+
   const handleCharacterImageError = () => {
     setCharacterFrame((current) => {
       if (current.imageIndex >= current.imageNames.length - 1) {
@@ -482,6 +513,79 @@ export default function AuthenticatedHome({ profile }) {
     event.preventDefault();
   });
 
+  const handleProfileMenuToggle = () => {
+    setIsProfileMenuOpen((prev) => !prev);
+  };
+
+  const handleProfileSave = async (updates) => {
+    const { error } = await supabase
+      .from('profiles')
+      .update(updates)
+      .eq('user_id', profile.user_id);
+
+    if (error) {
+      console.error('Profile update error:', error);
+      return '프로필을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.';
+    }
+
+    onProfileUpdated?.({
+      ...profile,
+      ...updates,
+    });
+
+    return '';
+  };
+
+  const handleLogout = async () => {
+    setIsProfileMenuOpen(false);
+    setIsProfileSettingsOpen(false);
+    setIsWithdrawConfirmOpen(false);
+    setWithdrawError('');
+
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  const handleWithdrawConfirm = async () => {
+    if (!profile?.user_id) {
+      return;
+    }
+
+    setWithdrawError('');
+    setIsWithdrawing(true);
+
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        is_active: false,
+      })
+      .eq('user_id', profile.user_id);
+
+    if (updateError) {
+      console.error('Withdraw update error:', updateError);
+      setWithdrawError('회원탈퇴를 처리하지 못했어요. 잠시 후 다시 시도해 주세요.');
+      setIsWithdrawing(false);
+      return;
+    }
+
+    onProfileUpdated?.({
+      ...profile,
+      is_active: false,
+    });
+
+    const { error: signOutError } = await supabase.auth.signOut();
+
+    if (signOutError) {
+      console.error('Withdraw sign-out error:', signOutError);
+      setWithdrawError('회원탈퇴 후 로그아웃을 완료하지 못했어요. 다시 시도해 주세요.');
+      setIsWithdrawing(false);
+      return;
+    }
+  };
+
   return (
     <div
       className="authenticated-home"
@@ -509,9 +613,44 @@ export default function AuthenticatedHome({ profile }) {
             type="button"
             className="header-profile-button"
             aria-label={`${displayName} 프로필`}
+            ref={profileButtonRef}
+            onClick={handleProfileMenuToggle}
           >
             <img src={profileImageSrc} alt="" />
           </button>
+
+          {isProfileMenuOpen ? (
+            <div className="profile-menu" ref={profileMenuRef}>
+              <button
+                type="button"
+                className="profile-menu__item"
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
+                  setIsProfileSettingsOpen(true);
+                }}
+              >
+                마이페이지
+              </button>
+              <button
+                type="button"
+                className="profile-menu__item"
+                onClick={handleLogout}
+              >
+                로그아웃
+              </button>
+              <button
+                type="button"
+                className="profile-menu__item profile-menu__item--danger"
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
+                  setWithdrawError('');
+                  setIsWithdrawConfirmOpen(true);
+                }}
+              >
+                회원탈퇴
+              </button>
+            </div>
+          ) : null}
         </div>
       </header>
 
@@ -576,6 +715,29 @@ export default function AuthenticatedHome({ profile }) {
           onClose={() => setIsLetterListOpen(false)}
         />
       ) : null}
+
+      <ProfileSettingsModal
+        isOpen={isProfileSettingsOpen}
+        profile={profile}
+        profileImageSrc={profileImageSrc}
+        onClose={() => setIsProfileSettingsOpen(false)}
+        onSave={handleProfileSave}
+      />
+
+      <WithdrawConfirmModal
+        isOpen={isWithdrawConfirmOpen}
+        loading={isWithdrawing}
+        error={withdrawError}
+        onClose={() => {
+          if (isWithdrawing) {
+            return;
+          }
+
+          setWithdrawError('');
+          setIsWithdrawConfirmOpen(false);
+        }}
+        onConfirm={handleWithdrawConfirm}
+      />
     </div>
   );
 }
