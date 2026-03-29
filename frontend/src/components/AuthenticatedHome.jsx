@@ -1,5 +1,68 @@
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { getImageUrl, getWebpageImageUrl } from '../lib/supabase';
+import SpeechBubble from './SpeechBubble';
 import './AuthenticatedHome.css';
+
+const ACTION_INTERVAL_MS = 60_000;
+const ACTION_FRAME_MS = 1_000;
+
+const IDLE_FRAME = {
+  alt: '기본 상태의 달램이',
+  dialogue: '',
+  imageNames: ['character-web.webp'],
+};
+
+const ACTIONS = [
+  {
+    name: 'eat',
+    frames: [
+      'character-web-eat.webp',
+      'character-web-eat2.webp',
+      'character-web.webp',
+      'character-web-eat.webp',
+      'character-web-eat2.webp',
+      'character-web.webp',
+      'character-web-eat.webp',
+      'character-web-eat2.webp',
+      'character-web.webp',
+      'character-web.webp',
+    ].map((imageName) => ({
+      alt: '도토리를 먹는 달램이',
+      dialogue: '다람다람! 도토리는 정말 맛있습니다람!',
+      durationMs: ACTION_FRAME_MS,
+      imageNames: [imageName],
+    })),
+  },
+  {
+    name: 'butterfly',
+    frames: [
+      {
+        alt: '나비와 노는 달램이',
+        dialogue: '다람다람! 나비님! 언제나 참 아름답습니다람!',
+        durationMs: 8_000,
+        imageNames: ['character-enjoy.webp'],
+      },
+      {
+        alt: '나비에게 작별 인사하는 달램이',
+        dialogue: '다람다람! 나비님! 자주 찾아와주셔서 감사합니다람!',
+        durationMs: 2_000,
+        imageNames: ['character-enjoy2.webp'],
+      },
+    ],
+  },
+  {
+    name: 'sing',
+    frames: Array.from({ length: 10 }, (_, index) => ({
+      alt: '노래를 부르는 달램이',
+      dialogue: '다람다람! 기분이 좋아서 노래 한곡 부르겠습니다람!',
+      durationMs: ACTION_FRAME_MS,
+      imageNames:
+        index % 2 === 0
+          ? ['character-sing.webp', 'character-sing1.webp']
+          : ['character-sing2.webp'],
+    })),
+  },
+];
 
 function LetterIcon() {
   return (
@@ -23,8 +86,98 @@ function LetterIcon() {
 }
 
 export default function AuthenticatedHome({ profile }) {
+  const [characterFrame, setCharacterFrame] = useState({
+    ...IDLE_FRAME,
+    imageIndex: 0,
+  });
+  const timeoutIdsRef = useRef(new Set());
+  const isUnmountedRef = useRef(false);
   const profileImageSrc = profile?.avatar_url || getWebpageImageUrl('character-icon.png');
   const displayName = profile?.nickname || profile?.email?.split('@')[0] || '고마운 이웃';
+
+  const clearScheduledTimeouts = useEffectEvent(() => {
+    timeoutIdsRef.current.forEach((timeoutId) => {
+      clearTimeout(timeoutId);
+    });
+    timeoutIdsRef.current.clear();
+  });
+
+  const waitFor = useEffectEvent((durationMs) => new Promise((resolve) => {
+    const timeoutId = window.setTimeout(() => {
+      timeoutIdsRef.current.delete(timeoutId);
+      resolve();
+    }, durationMs);
+
+    timeoutIdsRef.current.add(timeoutId);
+  }));
+
+  const showFrame = useEffectEvent((frame) => {
+    setCharacterFrame({
+      ...frame,
+      imageIndex: 0,
+    });
+  });
+
+  const restoreIdleFrame = useEffectEvent(() => {
+    showFrame(IDLE_FRAME);
+  });
+
+  const runRandomAction = useEffectEvent(async () => {
+    const action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+
+    for (const frame of action.frames) {
+      if (isUnmountedRef.current) {
+        return;
+      }
+
+      showFrame(frame);
+      await waitFor(frame.durationMs);
+    }
+
+    if (!isUnmountedRef.current) {
+      restoreIdleFrame();
+    }
+  });
+
+  useEffect(() => {
+    isUnmountedRef.current = false;
+    restoreIdleFrame();
+
+    let isCancelled = false;
+
+    const loopActions = async () => {
+      while (!isCancelled) {
+        await waitFor(ACTION_INTERVAL_MS);
+
+        if (isCancelled || isUnmountedRef.current) {
+          return;
+        }
+
+        await runRandomAction();
+      }
+    };
+
+    loopActions();
+
+    return () => {
+      isCancelled = true;
+      isUnmountedRef.current = true;
+      clearScheduledTimeouts();
+    };
+  }, []);
+
+  const handleCharacterImageError = () => {
+    setCharacterFrame((currentFrame) => {
+      if (currentFrame.imageIndex >= currentFrame.imageNames.length - 1) {
+        return currentFrame;
+      }
+
+      return {
+        ...currentFrame,
+        imageIndex: currentFrame.imageIndex + 1,
+      };
+    });
+  };
 
   return (
     <div
@@ -44,20 +197,37 @@ export default function AuthenticatedHome({ profile }) {
           <button type="button" className="header-icon-button" aria-label="편지함">
             <LetterIcon />
           </button>
-          <button type="button" className="header-profile-button" aria-label={`${displayName} 프로필`}>
+          <button
+            type="button"
+            className="header-profile-button"
+            aria-label={`${displayName} 프로필`}
+          >
             <img src={profileImageSrc} alt="" />
           </button>
         </div>
       </header>
 
       <main className="site-main">
-        <div className="site-main__character-shell">
-          <div className="site-main__glow" />
-          <img
-            className="site-main__character"
-            src={getImageUrl('character-web.webp')}
-            alt="기본 상태의 달램이"
-          />
+        <div className="site-main__character-stage">
+          {characterFrame.dialogue ? (
+            <div className="site-main__speech-wrap" aria-live="polite">
+              <SpeechBubble
+                className="site-main__speech"
+                isVisible
+                text={characterFrame.dialogue}
+              />
+            </div>
+          ) : null}
+
+          <div className="site-main__character-shell">
+            <div className="site-main__glow" />
+            <img
+              className="site-main__character"
+              src={getImageUrl(characterFrame.imageNames[characterFrame.imageIndex])}
+              alt={characterFrame.alt}
+              onError={handleCharacterImageError}
+            />
+          </div>
         </div>
       </main>
 

@@ -83,6 +83,27 @@
   padding: 120px 24px 0;
 }
 
+.site-main__character-stage {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.site-main__speech-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - 8px);
+  transform: translateX(-50%);
+  z-index: 3;
+  width: min(360px, 82vw);
+  pointer-events: none;
+}
+
+.site-main__speech {
+  width: 100%;
+}
+
 .site-main__character-shell {
   position: relative;
   width: min(340px, 68vw);
@@ -205,6 +226,11 @@
 
   .site-main {
     padding: 108px 18px 0;
+  }
+
+  .site-main__speech-wrap {
+    width: min(300px, 88vw);
+    bottom: calc(100% - 4px);
   }
 
   .site-main__character-shell {
