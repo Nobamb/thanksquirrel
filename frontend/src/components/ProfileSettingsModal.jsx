@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './ProfileSettingsModal.css';
 
 const MBTI_OPTIONS = [
@@ -24,14 +24,25 @@ export default function ProfileSettingsModal({
   onSave,
 }) {
   const [formData, setFormData] = useState(INITIAL_FORM);
+  const [avatarPreviewSrc, setAvatarPreviewSrc] = useState(profileImageSrc);
+  const [avatarFile, setAvatarFile] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const objectUrlRef = useRef(null);
+
+  const clearObjectUrl = () => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) {
       return;
     }
 
+    clearObjectUrl();
     setFormData({
       nickname: profile?.nickname ?? '',
       gender: profile?.gender ?? 'secret',
@@ -39,13 +50,28 @@ export default function ProfileSettingsModal({
       hobby: profile?.hobby ?? '',
       specialty: profile?.specialty ?? '',
     });
+    setAvatarPreviewSrc(profileImageSrc);
+    setAvatarFile(null);
     setError('');
     setLoading(false);
-  }, [isOpen, profile]);
+  }, [isOpen, profile, profileImageSrc]);
+
+  useEffect(() => () => {
+    clearObjectUrl();
+  }, []);
 
   if (!isOpen) {
     return null;
   }
+
+  const handleRequestClose = () => {
+    if (loading) {
+      return;
+    }
+
+    clearObjectUrl();
+    onClose();
+  };
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -53,6 +79,27 @@ export default function ProfileSettingsModal({
       ...prev,
       [name]: value,
     }));
+    setError('');
+  };
+
+  const handleAvatarChange = (event) => {
+    const nextFile = event.target.files?.[0] ?? null;
+
+    if (!nextFile) {
+      return;
+    }
+
+    if (!nextFile.type.startsWith('image/')) {
+      setError('이미지 파일만 선택할 수 있어요.');
+      event.target.value = '';
+      return;
+    }
+
+    clearObjectUrl();
+    const nextPreviewUrl = URL.createObjectURL(nextFile);
+    objectUrlRef.current = nextPreviewUrl;
+    setAvatarPreviewSrc(nextPreviewUrl);
+    setAvatarFile(nextFile);
     setError('');
   };
 
@@ -71,6 +118,7 @@ export default function ProfileSettingsModal({
       mbti: formData.mbti,
       hobby: formData.hobby.trim(),
       specialty: formData.specialty.trim(),
+      avatarFile,
     });
     setLoading(false);
 
@@ -79,20 +127,29 @@ export default function ProfileSettingsModal({
       return;
     }
 
+    clearObjectUrl();
     onClose();
   };
 
   return (
-    <div className="profile-modal-overlay" onMouseDown={onClose}>
+    <div className="profile-modal-overlay" onMouseDown={handleRequestClose}>
       <div className="profile-settings-modal" onMouseDown={(event) => event.stopPropagation()}>
-        <button type="button" className="close-btn" onClick={onClose} aria-label="닫기">×</button>
+        <button
+          type="button"
+          className="close-btn"
+          onClick={handleRequestClose}
+          aria-label="닫기"
+          disabled={loading}
+        >
+          횞
+        </button>
         <h2>마이페이지</h2>
-        <p className="profile-settings-subtitle">프로필 정보를 확인하고 수정할 수 있습니다.</p>
+        <p className="profile-settings-subtitle">프로필 정보를 확인하고 수정할 수 있어요.</p>
 
         <div className="profile-settings-card">
-          <img src={profileImageSrc} alt="" className="profile-settings-avatar" />
+          <img src={avatarPreviewSrc} alt="" className="profile-settings-avatar" />
           <div className="profile-settings-meta">
-            <strong>{profile?.nickname ?? '달램이 친구'}</strong>
+            <strong>{formData.nickname.trim() || profile?.nickname || '다람이 친구'}</strong>
             <span>{profile?.email ?? ''}</span>
           </div>
         </div>
@@ -100,6 +157,34 @@ export default function ProfileSettingsModal({
         {error ? <div className="error-message main-error">{error}</div> : null}
 
         <form className="profile-settings-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <div className="input-group">
+              <label htmlFor="profile-avatar">프로필 이미지</label>
+              <div className="profile-settings-avatar-field">
+                <label
+                  htmlFor="profile-avatar"
+                  className={`profile-settings-upload-button ${loading ? 'is-disabled' : ''}`}
+                >
+                  이미지 선택
+                </label>
+                <input
+                  id="profile-avatar"
+                  className="profile-settings-file-input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  disabled={loading}
+                />
+                <span className="profile-settings-file-name">
+                  {avatarFile?.name ?? '선택된 이미지가 없어요.'}
+                </span>
+              </div>
+              <p className="profile-settings-helper">
+                100KB를 넘는 이미지는 저장 전에 자동으로 압축됩니다.
+              </p>
+            </div>
+          </div>
+
           <div className="form-group row-group">
             <div className="input-group">
               <label htmlFor="profile-email">이메일</label>
@@ -114,7 +199,7 @@ export default function ProfileSettingsModal({
                 type="text"
                 value={formData.nickname}
                 onChange={handleChange}
-                placeholder="별명을 입력해 주세요"
+                placeholder="별명을 입력해 주세요."
               />
             </div>
           </div>
@@ -166,7 +251,7 @@ export default function ProfileSettingsModal({
           </div>
 
           <button type="submit" className="signup-submit-btn" disabled={loading}>
-            {loading ? '저장 중...' : '프로필 저장'}
+            {loading ? '저장 중..' : '프로필 저장'}
           </button>
         </form>
       </div>
