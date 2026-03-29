@@ -5,6 +5,7 @@ import './AuthenticatedHome.css';
 
 const ACTION_INTERVAL_MS = 20_000;
 const ACTION_FRAME_MS = 1_000;
+const ACTION_DURATION_FRAMES = 10;
 
 const IDLE_FRAME = {
   alt: '기본 상태의 달램이',
@@ -12,26 +13,26 @@ const IDLE_FRAME = {
   imageNames: ['character-web.webp'],
 };
 
+function createAlternatingFrames({ imageNames, alt, dialogue, frameCount = ACTION_DURATION_FRAMES }) {
+  return Array.from({ length: frameCount }, (_, index) => ({
+    alt,
+    dialogue,
+    durationMs: ACTION_FRAME_MS,
+    imageNames: [imageNames[index % imageNames.length]],
+  }));
+}
+
 const ACTIONS = [
   {
     name: 'eat',
-    frames: [
-      'character-web-eat.webp',
-      'character-web-eat2.webp',
-      'character-web.webp',
-      'character-web-eat.webp',
-      'character-web-eat2.webp',
-      'character-web.webp',
-      'character-web-eat.webp',
-      'character-web-eat2.webp',
-      'character-web.webp',
-      'character-web.webp',
-    ].map((imageName) => ({
+    frames: createAlternatingFrames({
+      imageNames: [
+        'character-web-eat.webp',
+        'character-web-eat2.webp',
+      ],
       alt: '도토리를 먹는 달램이',
       dialogue: '다람다람! 도토리는 정말 맛있습니다람!',
-      durationMs: ACTION_FRAME_MS,
-      imageNames: [imageName],
-    })),
+    }),
   },
   {
     name: 'butterfly',
@@ -52,14 +53,16 @@ const ACTIONS = [
   },
   {
     name: 'sing',
-    frames: Array.from({ length: 10 }, (_, index) => ({
+    frames: createAlternatingFrames({
+      imageNames: ['character-sing.webp', 'character-sing2.webp'],
       alt: '노래를 부르는 달램이',
       dialogue: '다람다람! 기분이 좋아서 노래 한곡 부르겠습니다람!',
-      durationMs: ACTION_FRAME_MS,
+    }).map((frame, index) => ({
+      ...frame,
       imageNames:
         index % 2 === 0
           ? ['character-sing.webp', 'character-sing1.webp']
-          : ['character-sing2.webp'],
+          : frame.imageNames,
     })),
   },
 ];
