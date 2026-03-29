@@ -73,8 +73,8 @@ hobby(text) : 취미
 specility(text) : 특기
 gender : 성별(기본값 비밀)
 mbti : mbti값(기본 infp)
-② letters 테이블 (500개의 덕담 마스터 데이터)
-id (bigint): 편지의 고유 번호입니다. (1~500)
+② all_letter json (500개의 덕담 json 데이터, workers kv에 저장)
+id (int): 편지의 고유 번호입니다. (1~500)
 message (text): 다람이가 전해줄 따뜻한 문장 내용입니다.
 ③ user_letters 테이블 (사용자별 편지 보관함)
 id (bigint): 보관 내역 고유 번호입니다.
