@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { getImageUrl, getWebpageImageUrl } from '../lib/supabase';
+import LetterListModal from './LetterListModal';
 import './AuthenticatedHome.css';
 
 function LetterIcon() {
@@ -23,8 +25,9 @@ function LetterIcon() {
 }
 
 export default function AuthenticatedHome({ profile }) {
+  const [isLetterListOpen, setIsLetterListOpen] = useState(false);
   const profileImageSrc = profile?.avatar_url || getWebpageImageUrl('character-icon.png');
-  const displayName = profile?.nickname || profile?.email?.split('@')[0] || '고마운 이웃';
+  const displayName = profile?.nickname || profile?.email?.split('@')[0] || '고마운 친구';
 
   return (
     <div
@@ -41,7 +44,12 @@ export default function AuthenticatedHome({ profile }) {
         </div>
 
         <div className="site-header__actions">
-          <button type="button" className="header-icon-button" aria-label="편지함">
+          <button
+            type="button"
+            className="header-icon-button"
+            aria-label="편지함"
+            onClick={() => setIsLetterListOpen(true)}
+          >
             <LetterIcon />
           </button>
           <button type="button" className="header-profile-button" aria-label={`${displayName} 프로필`}>
@@ -66,6 +74,13 @@ export default function AuthenticatedHome({ profile }) {
           <p className="site-footer__copy">copyright 2026 jshh001206@gmail.com All rights reserved.</p>
         </div>
       </footer>
+
+      {isLetterListOpen && profile?.user_id && (
+        <LetterListModal
+          profileId={profile.user_id}
+          onClose={() => setIsLetterListOpen(false)}
+        />
+      )}
     </div>
   );
 }
