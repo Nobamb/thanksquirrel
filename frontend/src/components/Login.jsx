@@ -67,6 +67,15 @@ async function insertProfile(user, profile) {
   ]);
 }
 
+async function reactivateProfile(userId) {
+  return supabase
+    .from('profiles')
+    .update({
+      is_active: true,
+    })
+    .eq('user_id', userId);
+}
+
 async function fetchProfile(userId) {
   const { data, error } = await supabase
     .from('profiles')
@@ -309,6 +318,20 @@ export default function Login() {
         }
 
         successType = 'signup';
+      } else if (existingProfile?.is_active === false && provider !== 'email') {
+        const { error: reactivationError } = await reactivateProfile(user.id);
+
+        if (reactivationError) {
+          console.error('Profile reactivation error:', reactivationError);
+          clearPendingAuthFlow();
+          setLoading(false);
+          setError('계정을 다시 활성화하는 중 문제가 발생했어요. 다시 시도해 주세요.');
+          await supabase.auth.signOut();
+          authProcessedRef.current = false;
+          return;
+        }
+
+        successType = 'reactivated';
       } else if (existingProfile?.is_active === false) {
         signOutErrorMessageRef.current = '회원탈퇴한 계정은 로그인할 수 없어요.';
         clearPendingAuthFlow();
@@ -570,7 +593,10 @@ export default function Login() {
   };
 
   const getSuccessDialogue = () => {
-    const baseDialogue = getBaseSuccessDialogue();
+    const baseDialogue =
+      isSuccess === 'reactivated'
+        ? '다람다람! 다시 와주셔서 감사합니다람!\n정말 기다리고 있었습니다람!'
+        : getBaseSuccessDialogue();
 
     switch (dailyLetterStatus) {
       case 'loading':
