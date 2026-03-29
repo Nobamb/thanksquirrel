@@ -2,9 +2,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { fetchLetterCatalog, fetchReceivedLetterIds } from '../lib/dailyLetter';
 import DailyLetterSequence from './DailyLetterSequence';
 import SearchInput from './SearchInput';
+import SelectField from './SelectField';
 import './LetterListModal.css';
 
 const UNRECEIVED_MESSAGE = '아직 받지 않은 편지입니다. 출석을 할 수록 더 많은 편지를 얻을 수 있습니다!';
+const VIEW_OPTIONS = [
+  { value: 'all', label: '전체 편지' },
+  { value: 'received', label: '내 편지' },
+];
 
 function CloseIcon() {
   return (
@@ -27,6 +32,7 @@ export default function LetterListModal({ profileId, onClose }) {
   const [selectedLetter, setSelectedLetter] = useState(null);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
+  const [viewMode, setViewMode] = useState('all');
 
   useEffect(() => {
     let isActive = true;
@@ -79,20 +85,28 @@ export default function LetterListModal({ profileId, onClose }) {
     [entries],
   );
 
+  const visibleEntries = useMemo(() => {
+    if (viewMode === 'received') {
+      return entries.filter((entry) => entry.isReceived);
+    }
+
+    return entries;
+  }, [entries, viewMode]);
+
   const filteredEntries = useMemo(() => {
     const trimmedQuery = query.trim();
 
     if (!trimmedQuery) {
-      return entries;
+      return visibleEntries;
     }
 
     if (/^\d+$/.test(trimmedQuery)) {
-      return entries.filter((entry) => String(entry.id).includes(trimmedQuery));
+      return visibleEntries.filter((entry) => String(entry.id).includes(trimmedQuery));
     }
 
     const normalizedQuery = trimmedQuery.toLowerCase();
-    return entries.filter((entry) => entry.message.toLowerCase().includes(normalizedQuery));
-  }, [entries, query]);
+    return visibleEntries.filter((entry) => entry.message.toLowerCase().includes(normalizedQuery));
+  }, [visibleEntries, query]);
 
   const handleClose = () => {
     setSelectedLetter(null);
@@ -124,6 +138,15 @@ export default function LetterListModal({ profileId, onClose }) {
               onChange={setQuery}
               placeholder="숫자는 ID, 문자는 편지 내용을 검색해 주세요"
               ariaLabel="편지 검색"
+            />
+          </div>
+
+          <div className="letter-list-modal__filter">
+            <SelectField
+              value={viewMode}
+              onChange={setViewMode}
+              options={VIEW_OPTIONS}
+              ariaLabel="편지 보기 방식"
             />
           </div>
 
