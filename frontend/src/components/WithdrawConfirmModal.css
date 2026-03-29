@@ -1,0 +1,127 @@
+.withdraw-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(37, 28, 21, 0.5);
+  padding: 20px;
+}
+
+.withdraw-modal {
+  position: relative;
+  width: min(860px, 100%);
+  border-radius: 34px;
+  background: linear-gradient(180deg, #fffaf2 0%, #fff2e1 100%);
+  box-shadow: 0 28px 62px rgba(77, 52, 23, 0.2);
+  padding: 34px 30px;
+}
+
+.withdraw-modal__layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(280px, 1fr);
+  gap: 24px;
+  align-items: center;
+}
+
+.withdraw-modal__character {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 330px;
+}
+
+.withdraw-modal__bubble {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(290px, 90%);
+}
+
+.withdraw-modal__image {
+  width: min(260px, 82%);
+  height: auto;
+  display: block;
+  filter: drop-shadow(0 18px 30px rgba(90, 61, 34, 0.16));
+}
+
+.withdraw-modal__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 12px 4px;
+}
+
+.withdraw-modal__panel h2 {
+  margin: 0;
+  color: #34281d;
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.withdraw-modal__panel p {
+  margin: 0;
+  color: #816b56;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.withdraw-modal__actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.withdraw-modal__primary,
+.withdraw-modal__secondary {
+  flex: 1;
+  border: none;
+  border-radius: 16px;
+  padding: 15px 18px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.withdraw-modal__primary {
+  background: #f38ba8;
+  color: #fff;
+}
+
+.withdraw-modal__secondary {
+  background: #f1e6d8;
+  color: #6d5845;
+}
+
+.withdraw-modal__primary:disabled,
+.withdraw-modal__secondary:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+@media (max-width: 720px) {
+  .withdraw-modal {
+    padding: 28px 18px 20px;
+  }
+
+  .withdraw-modal__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .withdraw-modal__character {
+    min-height: 290px;
+    padding-top: 16px;
+  }
+
+  .withdraw-modal__panel {
+    padding: 0;
+    text-align: center;
+  }
+
+  .withdraw-modal__actions {
+    flex-direction: column;
+  }
+}
