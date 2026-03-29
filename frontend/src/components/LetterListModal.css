@@ -1,0 +1,211 @@
+.letter-list-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  animation: letterListFadeIn 0.26s ease forwards;
+}
+
+.letter-list-modal.is-closing {
+  animation: letterListFadeOutDown 0.28s ease forwards;
+}
+
+.letter-list-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(253, 247, 236, 0.58);
+  backdrop-filter: blur(7px);
+}
+
+.letter-list-modal__panel {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(520px, calc(100vw - 28px));
+  height: min(72vh, 760px);
+  transform: translate(-50%, -50%);
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 56px rgba(121, 86, 54, 0.16);
+  padding: 26px 26px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.letter-list-modal__close {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 14px;
+  background: rgba(244, 233, 216, 0.82);
+  color: #7a5d3b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.letter-list-modal__close svg {
+  width: 20px;
+  height: 20px;
+}
+
+.letter-list-modal__header {
+  padding-top: 6px;
+  text-align: center;
+}
+
+.letter-list-modal__header h2 {
+  margin: 0;
+  color: #23160e;
+  font-size: clamp(30px, 4.4vw, 42px);
+  font-weight: 800;
+}
+
+.letter-list-modal__header p {
+  margin: 8px 0 0;
+  color: #9b7853;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.letter-list-modal__divider {
+  margin: 18px 0 18px;
+  height: 1px;
+  background: rgba(181, 148, 115, 0.38);
+}
+
+.letter-list-modal__status {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #73553b;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.letter-list-modal__status--error {
+  color: #a04f4f;
+}
+
+.letter-list-modal__list {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.letter-list-modal__list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.letter-list-modal__list::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(225, 171, 119, 0.9);
+}
+
+.letter-list-modal__list::-webkit-scrollbar-track {
+  background: rgba(235, 225, 214, 0.65);
+  border-radius: 999px;
+}
+
+.letter-list-item {
+  width: 100%;
+  border-radius: 22px;
+  border: 1.5px solid rgba(124, 92, 61, 0.42);
+  background: #ffffff;
+  padding: 18px 18px 18px 72px;
+  text-align: left;
+  position: relative;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.letter-list-item.is-received:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 24px rgba(129, 93, 59, 0.1);
+}
+
+.letter-list-item.is-locked {
+  background: #d3d3d3;
+  color: #4d4d4d;
+  cursor: not-allowed;
+  border-color: rgba(122, 122, 122, 0.36);
+}
+
+.letter-list-item__id {
+  position: absolute;
+  top: 50%;
+  left: 18px;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 14px;
+  background: rgba(250, 235, 216, 0.92);
+  color: #9a734b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.letter-list-item.is-locked .letter-list-item__id {
+  background: rgba(255, 255, 255, 0.58);
+  color: #666;
+}
+
+.letter-list-item__message {
+  display: block;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 700;
+  white-space: pre-wrap;
+}
+
+@keyframes letterListFadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes letterListFadeOutDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+}
+
+@media (max-width: 640px) {
+  .letter-list-modal__panel {
+    width: calc(100vw - 20px);
+    height: min(76vh, 680px);
+    border-radius: 24px;
+    padding: 20px 16px 18px;
+  }
+
+  .letter-list-item {
+    padding: 16px 14px 16px 62px;
+    border-radius: 18px;
+  }
+
+  .letter-list-item__message {
+    font-size: 14px;
+  }
+}
