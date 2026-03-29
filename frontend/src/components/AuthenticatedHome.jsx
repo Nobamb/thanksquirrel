@@ -7,11 +7,50 @@ import './AuthenticatedHome.css';
 const ACTION_INTERVAL_MS = 20_000;
 const ACTION_FRAME_MS = 1_000;
 const ACTION_DURATION_FRAMES = 10;
+const INTERACTION_DURATION_MS = 3_000;
+const ACORN_RETURN_WINDOW_MS = 5_000;
+const POINTER_DRAG_THRESHOLD_PX = 12;
+
+const EAT_IMAGES = ['character-web-eat.webp', 'character-web-eat2.webp'];
 
 const IDLE_FRAME = {
   alt: '기본 상태의 달램이',
   dialogue: '',
   imageNames: ['character-web.webp'],
+};
+
+const TICKLE_FRAME = {
+  alt: '간지러워하는 달램이',
+  dialogue: '다람다람! 너무 간지럽습니다람!',
+  durationMs: INTERACTION_DURATION_MS,
+  imageNames: ['character-tickle.webp'],
+};
+
+const HAPPY_FRAME = {
+  alt: '기분이 좋아진 달램이',
+  dialogue: '다람다람! 머리를 쓰다듬어 주셔서 기분이 좋습니다람!',
+  durationMs: INTERACTION_DURATION_MS,
+  imageNames: ['character-happy.webp'],
+};
+
+const ACORN_STOLEN_FRAME = {
+  alt: '도토리를 빼앗겨 슬픈 달램이',
+  dialogue: '다람다람! 도토리 돌려주시면 좋겠습니다람!',
+  imageNames: ['character-sad.webp'],
+};
+
+const ACORN_MISSED_FRAME = {
+  alt: '도토리를 돌려받지 못해 실망한 달램이',
+  dialogue: '다람다람… 힝… 아쉽습니다람…',
+  durationMs: INTERACTION_DURATION_MS,
+  imageNames: ['character-sad.webp', 'character-sad2.webp'],
+};
+
+const BUTTERFLY_GOODBYE_FRAME = {
+  alt: '나비에게 작별 인사하는 달램이',
+  dialogue: '다람다람! 나비님! 자주 찾아와주셔서 감사합니다람!',
+  durationMs: 2_000,
+  imageNames: ['character-enjoy2.webp'],
 };
 
 function createAlternatingFrames({ imageNames, alt, dialogue, frameCount = ACTION_DURATION_FRAMES }) {
@@ -23,17 +62,27 @@ function createAlternatingFrames({ imageNames, alt, dialogue, frameCount = ACTIO
   }));
 }
 
-const ACTIONS = [
+function createEatFrames(dialogue) {
+  return createAlternatingFrames({
+    imageNames: EAT_IMAGES,
+    alt: '도토리를 먹는 달램이',
+    dialogue,
+  });
+}
+
+function createFrameWithCurrentImage(frame, dialogue) {
+  return {
+    alt: frame.alt,
+    dialogue,
+    durationMs: INTERACTION_DURATION_MS,
+    imageNames: frame.imageNames,
+  };
+}
+
+const AUTO_ACTIONS = [
   {
     name: 'eat',
-    frames: createAlternatingFrames({
-      imageNames: [
-        'character-web-eat.webp',
-        'character-web-eat2.webp',
-      ],
-      alt: '도토리를 먹는 달램이',
-      dialogue: '다람다람! 도토리는 정말 맛있습니다람!',
-    }),
+    frames: createEatFrames('다람다람! 도토리는 정말 맛있습니다람!'),
   },
   {
     name: 'butterfly',
@@ -44,12 +93,7 @@ const ACTIONS = [
         durationMs: 8_000,
         imageNames: ['character-enjoy.webp'],
       },
-      {
-        alt: '나비에게 작별 인사하는 달램이',
-        dialogue: '다람다람! 나비님! 자주 찾아와주셔서 감사합니다람!',
-        durationMs: 2_000,
-        imageNames: ['character-enjoy2.webp'],
-      },
+      BUTTERFLY_GOODBYE_FRAME,
     ],
   },
   {
@@ -60,10 +104,7 @@ const ACTIONS = [
       dialogue: '다람다람! 기분이 좋아서 노래 한곡 부르겠습니다람!',
     }).map((frame, index) => ({
       ...frame,
-      imageNames:
-        index % 2 === 0
-          ? ['character-sing.webp', 'character-sing1.webp']
-          : frame.imageNames,
+      imageNames: index % 2 === 0 ? ['character-sing.webp', 'character-sing1.webp'] : frame.imageNames,
     })),
   },
 ];
@@ -95,94 +136,272 @@ export default function AuthenticatedHome({ profile }) {
     ...IDLE_FRAME,
     imageIndex: 0,
   });
-  const timeoutIdsRef = useRef(new Set());
+  const actionTimeoutEntriesRef = useRef(new Set());
+  const autoTimeoutIdRef = useRef(null);
   const isUnmountedRef = useRef(false);
+  const actionRunIdRef = useRef(0);
+  const currentActionRef = useRef('idle');
+  const currentFrameRef = useRef(IDLE_FRAME);
+  const pointerStateRef = useRef(null);
   const profileImageSrc = profile?.avatar_url || getWebpageImageUrl('character-icon.png');
   const displayName = profile?.nickname || profile?.email?.split('@')[0] || '고마운 친구';
 
-  const clearScheduledTimeouts = useEffectEvent(() => {
-    timeoutIdsRef.current.forEach((timeoutId) => {
-      clearTimeout(timeoutId);
+  const clearActionTimeouts = useEffectEvent(() => {
+    actionTimeoutEntriesRef.current.forEach((entry) => {
+      clearTimeout(entry.timeoutId);
+      entry.resolve(false);
     });
-    timeoutIdsRef.current.clear();
+    actionTimeoutEntriesRef.current.clear();
   });
 
-  const waitFor = useEffectEvent((durationMs) => new Promise((resolve) => {
-    const timeoutId = window.setTimeout(() => {
-      timeoutIdsRef.current.delete(timeoutId);
-      resolve();
+  const clearAutoTimer = useEffectEvent(() => {
+    if (autoTimeoutIdRef.current !== null) {
+      clearTimeout(autoTimeoutIdRef.current);
+      autoTimeoutIdRef.current = null;
+    }
+  });
+
+  const waitForAction = useEffectEvent((runId, durationMs) => new Promise((resolve) => {
+    const entry = {
+      timeoutId: null,
+      resolve: (result) => {
+        actionTimeoutEntriesRef.current.delete(entry);
+        resolve(result);
+      },
+    };
+
+    entry.timeoutId = window.setTimeout(() => {
+      entry.resolve(!isUnmountedRef.current && runId === actionRunIdRef.current);
     }, durationMs);
 
-    timeoutIdsRef.current.add(timeoutId);
+    actionTimeoutEntriesRef.current.add(entry);
   }));
 
   const showFrame = useEffectEvent((frame) => {
+    currentFrameRef.current = frame;
     setCharacterFrame({
       ...frame,
       imageIndex: 0,
     });
   });
 
-  const restoreIdleFrame = useEffectEvent(() => {
+  const showIdleFrame = useEffectEvent(() => {
+    currentActionRef.current = 'idle';
     showFrame(IDLE_FRAME);
   });
 
-  const runRandomAction = useEffectEvent(async () => {
-    const action = ACTIONS[Math.floor(Math.random() * ACTIONS.length)];
+  const scheduleNextAutoAction = useEffectEvent(() => {
+    clearAutoTimer();
 
-    for (const frame of action.frames) {
+    autoTimeoutIdRef.current = window.setTimeout(async () => {
+      autoTimeoutIdRef.current = null;
+
       if (isUnmountedRef.current) {
         return;
       }
 
-      showFrame(frame);
-      await waitFor(frame.durationMs);
+      const action = AUTO_ACTIONS[Math.floor(Math.random() * AUTO_ACTIONS.length)];
+      await runFrameSequence(action.name, action.frames);
+    }, ACTION_INTERVAL_MS);
+  });
+
+  const finishSequence = useEffectEvent((runId, { resumeAuto = true } = {}) => {
+    if (isUnmountedRef.current || runId !== actionRunIdRef.current) {
+      return;
     }
 
-    if (!isUnmountedRef.current) {
-      restoreIdleFrame();
+    showIdleFrame();
+
+    if (resumeAuto) {
+      scheduleNextAutoAction();
     }
+  });
+
+  const runFrameSequence = useEffectEvent(async (name, frames, { resumeAuto = true } = {}) => {
+    clearActionTimeouts();
+    clearAutoTimer();
+
+    const runId = actionRunIdRef.current + 1;
+    actionRunIdRef.current = runId;
+    currentActionRef.current = name;
+
+    for (const frame of frames) {
+      if (isUnmountedRef.current || runId !== actionRunIdRef.current) {
+        return false;
+      }
+
+      showFrame(frame);
+      const isStillActive = await waitForAction(runId, frame.durationMs);
+
+      if (!isStillActive) {
+        return false;
+      }
+    }
+
+    finishSequence(runId, { resumeAuto });
+    return true;
+  });
+
+  const startEatSequence = useEffectEvent((dialogue) => (
+    runFrameSequence('eat', createEatFrames(dialogue))
+  ));
+
+  const startAcornStolenFlow = useEffectEvent(async () => {
+    clearActionTimeouts();
+    clearAutoTimer();
+
+    const runId = actionRunIdRef.current + 1;
+    actionRunIdRef.current = runId;
+    currentActionRef.current = 'eat-stolen';
+    showFrame(ACORN_STOLEN_FRAME);
+
+    const stillWaiting = await waitForAction(runId, ACORN_RETURN_WINDOW_MS);
+
+    if (!stillWaiting) {
+      return;
+    }
+
+    currentActionRef.current = 'eat-disappointed';
+    showFrame(ACORN_MISSED_FRAME);
+
+    const isStillActive = await waitForAction(runId, ACORN_MISSED_FRAME.durationMs);
+
+    if (!isStillActive) {
+      return;
+    }
+
+    finishSequence(runId);
+  });
+
+  const handleCharacterInteraction = useEffectEvent(({ zone, dragged }) => {
+    const currentAction = currentActionRef.current;
+
+    if (currentAction === 'eat-stolen') {
+      startEatSequence('다람다람! 도토리를 주셔서 감사합니다람!');
+      return;
+    }
+
+    if (currentAction === 'eat') {
+      startAcornStolenFlow();
+      return;
+    }
+
+    if (currentAction === 'sing') {
+      runFrameSequence('sing-response', [
+        createFrameWithCurrentImage(
+          currentFrameRef.current,
+          '다람다람! 나는 이 동네 최고의 가수입니다람!',
+        ),
+      ]);
+      return;
+    }
+
+    if (currentAction === 'butterfly') {
+      runFrameSequence('butterfly-response', [BUTTERFLY_GOODBYE_FRAME]);
+      return;
+    }
+
+    if (zone === 'head') {
+      if (dragged) {
+        runFrameSequence('happy', [HAPPY_FRAME]);
+        return;
+      }
+
+      startEatSequence('다람다람! 도토리를 주셔서 감사합니다람!');
+      return;
+    }
+
+    runFrameSequence('tickle', [TICKLE_FRAME]);
   });
 
   useEffect(() => {
     isUnmountedRef.current = false;
-    restoreIdleFrame();
-
-    let isCancelled = false;
-
-    const loopActions = async () => {
-      while (!isCancelled) {
-        await waitFor(ACTION_INTERVAL_MS);
-
-        if (isCancelled || isUnmountedRef.current) {
-          return;
-        }
-
-        await runRandomAction();
-      }
-    };
-
-    loopActions();
+    showIdleFrame();
+    scheduleNextAutoAction();
 
     return () => {
-      isCancelled = true;
       isUnmountedRef.current = true;
-      clearScheduledTimeouts();
+      pointerStateRef.current = null;
+      clearActionTimeouts();
+      clearAutoTimer();
     };
   }, []);
 
   const handleCharacterImageError = () => {
-    setCharacterFrame((currentFrame) => {
-      if (currentFrame.imageIndex >= currentFrame.imageNames.length - 1) {
-        return currentFrame;
+    setCharacterFrame((current) => {
+      if (current.imageIndex >= current.imageNames.length - 1) {
+        return current;
       }
 
       return {
-        ...currentFrame,
-        imageIndex: currentFrame.imageIndex + 1,
+        ...current,
+        imageIndex: current.imageIndex + 1,
       };
     });
   };
+
+  const handleZonePointerDown = useEffectEvent((zone, event) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) {
+      return;
+    }
+
+    pointerStateRef.current = {
+      dragged: false,
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      zone,
+    };
+
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  });
+
+  const handleZonePointerMove = useEffectEvent((zone, event) => {
+    const state = pointerStateRef.current;
+
+    if (!state || state.pointerId !== event.pointerId || state.zone !== zone) {
+      return;
+    }
+
+    if (state.dragged) {
+      return;
+    }
+
+    const distance = Math.hypot(event.clientX - state.startX, event.clientY - state.startY);
+
+    if (distance >= POINTER_DRAG_THRESHOLD_PX) {
+      state.dragged = true;
+    }
+  });
+
+  const releaseZonePointer = useEffectEvent((zone, event) => {
+    const state = pointerStateRef.current;
+
+    if (!state || state.pointerId !== event.pointerId || state.zone !== zone) {
+      return null;
+    }
+
+    pointerStateRef.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    return state;
+  });
+
+  const handleZonePointerUp = useEffectEvent((zone, event) => {
+    const state = releaseZonePointer(zone, event);
+
+    if (!state) {
+      return;
+    }
+
+    handleCharacterInteraction({
+      dragged: state.dragged,
+      zone: state.zone,
+    });
+  });
+
+  const handleZonePointerCancel = useEffectEvent((zone, event) => {
+    releaseZonePointer(zone, event);
+  });
 
   return (
     <div
@@ -235,7 +454,27 @@ export default function AuthenticatedHome({ profile }) {
               className="site-main__character"
               src={getImageUrl(characterFrame.imageNames[characterFrame.imageIndex])}
               alt={characterFrame.alt}
+              draggable="false"
               onError={handleCharacterImageError}
+            />
+
+            <button
+              type="button"
+              className="site-main__hit-zone site-main__hit-zone--head"
+              aria-label="달램이 머리와 상호작용"
+              onPointerCancel={(event) => handleZonePointerCancel('head', event)}
+              onPointerDown={(event) => handleZonePointerDown('head', event)}
+              onPointerMove={(event) => handleZonePointerMove('head', event)}
+              onPointerUp={(event) => handleZonePointerUp('head', event)}
+            />
+            <button
+              type="button"
+              className="site-main__hit-zone site-main__hit-zone--body"
+              aria-label="달램이 몸과 상호작용"
+              onPointerCancel={(event) => handleZonePointerCancel('body', event)}
+              onPointerDown={(event) => handleZonePointerDown('body', event)}
+              onPointerMove={(event) => handleZonePointerMove('body', event)}
+              onPointerUp={(event) => handleZonePointerUp('body', event)}
             />
           </div>
         </div>
@@ -247,12 +486,12 @@ export default function AuthenticatedHome({ profile }) {
         </div>
       </footer>
 
-      {isLetterListOpen && profile?.user_id && (
+      {isLetterListOpen && profile?.user_id ? (
         <LetterListModal
           profileId={profile.user_id}
           onClose={() => setIsLetterListOpen(false)}
         />
-      )}
+      ) : null}
     </div>
   );
 }
