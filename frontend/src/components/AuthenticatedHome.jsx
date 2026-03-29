@@ -43,7 +43,7 @@ const ACORN_MISSED_FRAME = {
   alt: '도토리를 돌려받지 못해 실망한 달램이',
   dialogue: '다람다람… 힝… 아쉽습니다람…',
   durationMs: INTERACTION_DURATION_MS,
-  imageNames: ['character-sad.webp', 'character-sad2.webp'],
+  imageNames: ['character-sad2.webp'],
 };
 
 const BUTTERFLY_GOODBYE_FRAME = {
@@ -345,8 +345,11 @@ export default function AuthenticatedHome({ profile }) {
       return;
     }
 
+    event.preventDefault();
+
     pointerStateRef.current = {
       dragged: false,
+      hasTriggeredDrag: false,
       pointerId: event.pointerId,
       startX: event.clientX,
       startY: event.clientY,
@@ -363,7 +366,9 @@ export default function AuthenticatedHome({ profile }) {
       return;
     }
 
-    if (state.dragged) {
+    event.preventDefault();
+
+    if (state.hasTriggeredDrag) {
       return;
     }
 
@@ -371,6 +376,11 @@ export default function AuthenticatedHome({ profile }) {
 
     if (distance >= POINTER_DRAG_THRESHOLD_PX) {
       state.dragged = true;
+      state.hasTriggeredDrag = true;
+      handleCharacterInteraction({
+        dragged: true,
+        zone: state.zone,
+      });
     }
   });
 
@@ -387,9 +397,15 @@ export default function AuthenticatedHome({ profile }) {
   });
 
   const handleZonePointerUp = useEffectEvent((zone, event) => {
+    event.preventDefault();
+
     const state = releaseZonePointer(zone, event);
 
     if (!state) {
+      return;
+    }
+
+    if (state.hasTriggeredDrag) {
       return;
     }
 
@@ -400,7 +416,12 @@ export default function AuthenticatedHome({ profile }) {
   });
 
   const handleZonePointerCancel = useEffectEvent((zone, event) => {
+    event.preventDefault();
     releaseZonePointer(zone, event);
+  });
+
+  const preventNativeDrag = useEffectEvent((event) => {
+    event.preventDefault();
   });
 
   return (
@@ -455,6 +476,7 @@ export default function AuthenticatedHome({ profile }) {
               src={getImageUrl(characterFrame.imageNames[characterFrame.imageIndex])}
               alt={characterFrame.alt}
               draggable="false"
+              onDragStart={preventNativeDrag}
               onError={handleCharacterImageError}
             />
 
@@ -462,6 +484,8 @@ export default function AuthenticatedHome({ profile }) {
               type="button"
               className="site-main__hit-zone site-main__hit-zone--head"
               aria-label="달램이 머리와 상호작용"
+              draggable="false"
+              onDragStart={preventNativeDrag}
               onPointerCancel={(event) => handleZonePointerCancel('head', event)}
               onPointerDown={(event) => handleZonePointerDown('head', event)}
               onPointerMove={(event) => handleZonePointerMove('head', event)}
@@ -471,6 +495,8 @@ export default function AuthenticatedHome({ profile }) {
               type="button"
               className="site-main__hit-zone site-main__hit-zone--body"
               aria-label="달램이 몸과 상호작용"
+              draggable="false"
+              onDragStart={preventNativeDrag}
               onPointerCancel={(event) => handleZonePointerCancel('body', event)}
               onPointerDown={(event) => handleZonePointerDown('body', event)}
               onPointerMove={(event) => handleZonePointerMove('body', event)}

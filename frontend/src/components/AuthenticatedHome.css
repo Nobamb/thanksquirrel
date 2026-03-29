@@ -159,21 +159,17 @@
 }
 
 .site-main__hit-zone--head {
-  top: 6%;
-  left: 50%;
-  width: 48%;
-  height: 23%;
-  transform: translateX(-50%);
-  border-radius: 50% 50% 44% 44%;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 50%;
+  border-radius: 0 0 16px 0;
+  z-index: 3;
 }
 
 .site-main__hit-zone--body {
-  left: 50%;
-  bottom: 6%;
-  width: 72%;
-  height: 56%;
-  transform: translateX(-50%);
-  border-radius: 36% 36% 30% 30%;
+  inset: 0;
+  z-index: 2;
 }
 
 .site-footer {
@@ -276,12 +272,11 @@
 
   .site-main__hit-zone--head {
     width: 50%;
-    height: 24%;
+    height: 50%;
   }
 
   .site-main__hit-zone--body {
-    width: 74%;
-    height: 58%;
+    inset: 0;
   }
 
   .site-footer {
