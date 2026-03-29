@@ -151,6 +151,7 @@ export default function Login() {
   const recoveryFlowRef = useRef(initialRecoveryMode);
   const dailyLetterPromiseRef = useRef(null);
   const activeProfileIdRef = useRef(null);
+  const signOutErrorMessageRef = useRef(null);
 
   const resetDailyLetterState = () => {
     dailyLetterPromiseRef.current = null;
@@ -224,7 +225,8 @@ export default function Login() {
         setIsSuccessLeaving(false);
         setIsExiting(false);
         setLoading(false);
-        setError(null);
+        setError(signOutErrorMessageRef.current);
+        signOutErrorMessageRef.current = null;
         return;
       }
 
@@ -307,6 +309,12 @@ export default function Login() {
         }
 
         successType = 'signup';
+      } else if (existingProfile?.is_active === false) {
+        signOutErrorMessageRef.current = '회원탈퇴한 계정은 로그인할 수 없어요.';
+        clearPendingAuthFlow();
+        await supabase.auth.signOut();
+        authProcessedRef.current = false;
+        return;
       } else if (pendingAuthFlow === 'signup') {
         successType = 'signup';
       }
@@ -315,11 +323,6 @@ export default function Login() {
 
       if (user.email) {
         profileUpdates.email = user.email.toLowerCase();
-      }
-
-      if (existingProfile && existingProfile.is_active === false) {
-        profileUpdates.is_active = true;
-        successType = 'reactivated';
       }
 
       if (Object.keys(profileUpdates).length > 0) {
@@ -364,6 +367,8 @@ export default function Login() {
       : 'greeting';
 
   const handleKakaoLogin = async () => {
+    authProcessedRef.current = false;
+    signOutErrorMessageRef.current = null;
     setError(null);
     setPendingAuthFlow('oauth');
 
@@ -384,6 +389,8 @@ export default function Login() {
   };
 
   const handleGoogleLogin = async () => {
+    authProcessedRef.current = false;
+    signOutErrorMessageRef.current = null;
     setError(null);
     setPendingAuthFlow('oauth');
 
@@ -404,6 +411,8 @@ export default function Login() {
   };
 
   const handleNaverLogin = async () => {
+    authProcessedRef.current = false;
+    signOutErrorMessageRef.current = null;
     setError(null);
     setPendingAuthFlow('oauth');
 
@@ -425,6 +434,8 @@ export default function Login() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+    authProcessedRef.current = false;
+    signOutErrorMessageRef.current = null;
     setLoading(true);
     setError(null);
     setPendingAuthFlow('login');
@@ -446,7 +457,10 @@ export default function Login() {
       }
 
       setLoading(false);
+      return;
     }
+
+    setLoading(false);
   };
 
   const handlePasswordResetClose = async () => {
@@ -550,10 +564,6 @@ export default function Login() {
   const getBaseSuccessDialogue = () => {
     if (isSuccess === 'signup') {
       return '다람다람! 처음이라 쉽지 않을텐데 용기내서 우리 동네 와주셔서 정말 감사합니다람!\n수고 많으셨을텐데 우선 우리 동네에서 푹 쉬고 있어주시면 좋겠습니다람!';
-    }
-
-    if (isSuccess === 'reactivated') {
-      return '다람다람! 다시 와주셔서 감사합니다람!\n정말 기다리고 있었습니다람!';
     }
 
     return '다람다람! 우리 동네 사람이었다람!\n편히 쉬시면 좋겠습니다람!';
