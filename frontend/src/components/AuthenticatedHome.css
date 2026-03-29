@@ -55,6 +55,7 @@
   box-shadow: 0 14px 30px rgba(103, 74, 43, 0.12);
   color: #7b5f42;
   backdrop-filter: blur(10px);
+  cursor: pointer;
 }
 
 .header-icon-button svg {
