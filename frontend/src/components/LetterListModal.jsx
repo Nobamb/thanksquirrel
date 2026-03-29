@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { fetchLetterCatalog, fetchReceivedLetterIds } from '../lib/dailyLetter';
 import DailyLetterSequence from './DailyLetterSequence';
+import SearchInput from './SearchInput';
 import './LetterListModal.css';
 
 const UNRECEIVED_MESSAGE = '아직 받지 않은 편지입니다. 출석을 할 수록 더 많은 편지를 얻을 수 있습니다!';
@@ -25,6 +26,7 @@ export default function LetterListModal({ profileId, onClose }) {
   const [entries, setEntries] = useState([]);
   const [selectedLetter, setSelectedLetter] = useState(null);
   const [error, setError] = useState('');
+  const [query, setQuery] = useState('');
 
   useEffect(() => {
     let isActive = true;
@@ -77,6 +79,21 @@ export default function LetterListModal({ profileId, onClose }) {
     [entries],
   );
 
+  const filteredEntries = useMemo(() => {
+    const trimmedQuery = query.trim();
+
+    if (!trimmedQuery) {
+      return entries;
+    }
+
+    if (/^\d+$/.test(trimmedQuery)) {
+      return entries.filter((entry) => String(entry.id).includes(trimmedQuery));
+    }
+
+    const normalizedQuery = trimmedQuery.toLowerCase();
+    return entries.filter((entry) => entry.message.toLowerCase().includes(normalizedQuery));
+  }, [entries, query]);
+
   const handleClose = () => {
     setSelectedLetter(null);
     setIsClosing(true);
@@ -101,6 +118,15 @@ export default function LetterListModal({ profileId, onClose }) {
             <p>받은 편지 {receivedCount}개</p>
           </header>
 
+          <div className="letter-list-modal__search">
+            <SearchInput
+              value={query}
+              onChange={setQuery}
+              placeholder="숫자는 ID, 문자는 편지 내용을 검색해 주세요"
+              ariaLabel="편지 검색"
+            />
+          </div>
+
           <div className="letter-list-modal__divider" />
 
           {status === 'loading' && (
@@ -112,20 +138,24 @@ export default function LetterListModal({ profileId, onClose }) {
           )}
 
           {status === 'ready' && (
-            <div className="letter-list-modal__list" role="list">
-              {entries.map((entry) => (
-                <button
-                  key={entry.id}
-                  type="button"
-                  className={`letter-list-item ${entry.isReceived ? 'is-received' : 'is-locked'}`}
-                  disabled={!entry.isReceived}
-                  onClick={() => setSelectedLetter({ id: entry.id, message: entry.message })}
-                >
-                  <span className="letter-list-item__id">{String(entry.id).padStart(3, '0')}</span>
-                  <span className="letter-list-item__message">{entry.message}</span>
-                </button>
-              ))}
-            </div>
+            filteredEntries.length > 0 ? (
+              <div className="letter-list-modal__list" role="list">
+                {filteredEntries.map((entry) => (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    className={`letter-list-item ${entry.isReceived ? 'is-received' : 'is-locked'}`}
+                    disabled={!entry.isReceived}
+                    onClick={() => setSelectedLetter({ id: entry.id, message: entry.message })}
+                  >
+                    <span className="letter-list-item__id">{String(entry.id).padStart(3, '0')}</span>
+                    <span className="letter-list-item__message">{entry.message}</span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="letter-list-modal__status">검색 결과가 없습니다.</div>
+            )
           )}
         </section>
       </div>

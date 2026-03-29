@@ -71,6 +71,10 @@
   font-weight: 700;
 }
 
+.letter-list-modal__search {
+  margin-top: 18px;
+}
+
 .letter-list-modal__divider {
   margin: 18px 0 18px;
   height: 1px;
