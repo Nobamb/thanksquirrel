@@ -1,4 +1,5 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react';
+import imageCompression from 'browser-image-compression';
 import { getImageUrl, getWebpageImageUrl, supabase } from '../lib/supabase';
 import LetterListModal from './LetterListModal';
 import ProfileSettingsModal from './ProfileSettingsModal';
@@ -12,6 +13,8 @@ const ACTION_DURATION_FRAMES = 10;
 const INTERACTION_DURATION_MS = 3_000;
 const ACORN_RETURN_WINDOW_MS = 5_000;
 const POINTER_DRAG_THRESHOLD_PX = 12;
+const PROFILE_IMAGE_BUCKET = 'profile_images';
+const PROFILE_IMAGE_MAX_BYTES = 100 * 1024;
 
 const EAT_IMAGES = ['character-web-eat.webp', 'character-web-eat2.webp'];
 
@@ -110,6 +113,59 @@ const AUTO_ACTIONS = [
     })),
   },
 ];
+
+function getProfileImageExtension(file) {
+  const extensionFromName = file.name?.split('.').pop()?.toLowerCase();
+
+  if (extensionFromName) {
+    return extensionFromName;
+  }
+
+  const extensionFromType = file.type?.split('/').pop()?.toLowerCase();
+
+  if (!extensionFromType) {
+    return 'jpg';
+  }
+
+  return extensionFromType === 'jpeg' ? 'jpg' : extensionFromType;
+}
+
+async function prepareProfileImageFile(file) {
+  if (file.size <= PROFILE_IMAGE_MAX_BYTES) {
+    return file;
+  }
+
+  const compressedFile = await imageCompression(file, {
+    maxSizeMB: PROFILE_IMAGE_MAX_BYTES / (1024 * 1024),
+    useWebWorker: true,
+    initialQuality: 0.85,
+  });
+
+  if (compressedFile.size > PROFILE_IMAGE_MAX_BYTES) {
+    throw new Error('profile_image_too_large');
+  }
+
+  return compressedFile;
+}
+
+async function uploadProfileImage(userId, file) {
+  const preparedFile = await prepareProfileImageFile(file);
+  const fileExtension = getProfileImageExtension(preparedFile);
+  const filePath = `${userId}/avatar-${Date.now()}.${fileExtension}`;
+  const storageClient = supabase.storage.from(PROFILE_IMAGE_BUCKET);
+  const { error: uploadError } = await storageClient.upload(filePath, preparedFile, {
+    cacheControl: '3600',
+    upsert: false,
+    contentType: preparedFile.type || file.type || undefined,
+  });
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  const { data } = storageClient.getPublicUrl(filePath);
+  return data.publicUrl;
+}
 
 function LetterIcon() {
   return (
@@ -517,7 +573,7 @@ export default function AuthenticatedHome({ profile, onProfileUpdated }) {
     setIsProfileMenuOpen((prev) => !prev);
   };
 
-  const handleProfileSave = async (updates) => {
+  const handleProfileSaveLegacy = async (updates) => {
     const { error } = await supabase
       .from('profiles')
       .update(updates)
@@ -531,6 +587,48 @@ export default function AuthenticatedHome({ profile, onProfileUpdated }) {
     onProfileUpdated?.({
       ...profile,
       ...updates,
+    });
+
+    return '';
+  };
+
+  const handleProfileSave = async (updates) => {
+    if (!profile?.user_id) {
+      return '프로필 정보를 찾을 수 없어요. 다시 로그인해 주세요.';
+    }
+
+    const { avatarFile, ...profileUpdates } = updates;
+    const nextUpdates = {
+      ...profileUpdates,
+    };
+
+    try {
+      if (avatarFile) {
+        nextUpdates.avatar_url = await uploadProfileImage(profile.user_id, avatarFile);
+      }
+    } catch (uploadError) {
+      console.error('Profile image upload error:', uploadError);
+
+      if (uploadError?.message === 'profile_image_too_large') {
+        return '이미지를 100KB 이하로 맞추지 못했어요. 다른 이미지를 선택해 주세요.';
+      }
+
+      return '프로필 이미지를 업로드하지 못했어요. 다시 시도해 주세요.';
+    }
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(nextUpdates)
+      .eq('user_id', profile.user_id);
+
+    if (error) {
+      console.error('Profile update error:', error);
+      return '프로필을 저장하지 못했어요. 잠시 후 다시 시도해 주세요.';
+    }
+
+    onProfileUpdated?.({
+      ...profile,
+      ...nextUpdates,
     });
 
     return '';
