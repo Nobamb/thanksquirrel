@@ -3,7 +3,7 @@ import { getImageUrl, getWebpageImageUrl } from '../lib/supabase';
 import SpeechBubble from './SpeechBubble';
 import './AuthenticatedHome.css';
 
-const ACTION_INTERVAL_MS = 60_000;
+const ACTION_INTERVAL_MS = 20_000;
 const ACTION_FRAME_MS = 1_000;
 
 const IDLE_FRAME = {
