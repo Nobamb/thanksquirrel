@@ -103,7 +103,7 @@
 .letter-list-modal__list {
   flex: 1;
   overflow-y: auto;
-  padding-right: 8px;
+  padding: 6px 8px 16px 4px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -132,7 +132,10 @@
   text-align: left;
   position: relative;
   cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
 }
 
 .letter-list-item.is-received:hover {
