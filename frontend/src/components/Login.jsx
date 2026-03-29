@@ -71,7 +71,7 @@ async function insertProfile(user, profile) {
 async function fetchProfile(userId) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, email, nickname, avatar_url')
+    .select('id, user_id, email, nickname, avatar_url')
     .eq('user_id', userId)
     .maybeSingle();
 
@@ -303,7 +303,7 @@ export default function Login() {
       }
 
       const fetchedProfile = await fetchProfile(user.id);
-      if (!fetchedProfile?.id) {
+      if (!fetchedProfile?.user_id) {
         authProcessedRef.current = false;
         clearPendingAuthFlow();
         setLoading(false);
@@ -313,7 +313,7 @@ export default function Login() {
 
       setProfile(fetchedProfile);
       clearPendingAuthFlow();
-      beginDailyLetterPreparation(fetchedProfile.id);
+      beginDailyLetterPreparation(fetchedProfile.user_id);
       setAppStage('auth');
       showSuccessStage(successType);
     });
@@ -440,9 +440,9 @@ export default function Login() {
     if (session?.user?.id) {
       const fetchedProfile = await fetchProfile(session.user.id);
 
-      if (fetchedProfile?.id) {
+      if (fetchedProfile?.user_id) {
         setProfile(fetchedProfile);
-        beginDailyLetterPreparation(fetchedProfile.id);
+        beginDailyLetterPreparation(fetchedProfile.user_id);
       } else {
         setDailyLetter(null);
         setDailyLetterStatus('error');

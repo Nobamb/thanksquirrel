@@ -20,7 +20,9 @@ function buildLettersEndpoint() {
 }
 
 function normalizeLetters(payload) {
-  const rawLetters = Array.isArray(payload) ? payload : payload?.letters;
+  const rawLetters = Array.isArray(payload)
+    ? payload
+    : payload?.all_letter ?? payload?.letters ?? payload?.data?.all_letter ?? payload?.data?.letters;
 
   if (!Array.isArray(rawLetters)) {
     return [];
@@ -53,6 +55,45 @@ function toKstDateKey(dateValue) {
   return KST_DATE_FORMATTER.format(date);
 }
 
+function isUuid(value) {
+  return (
+    typeof value === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+  );
+}
+
+async function resolveUserId(profileIdentifier) {
+  if (isUuid(profileIdentifier)) {
+    return profileIdentifier;
+  }
+
+  const normalizedProfileId = Number(profileIdentifier);
+
+  if (!Number.isFinite(normalizedProfileId)) {
+    const error = new Error('profile id is invalid.');
+    error.code = 'invalid_profile_id';
+    throw error;
+  }
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('user_id')
+    .eq('id', normalizedProfileId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data?.user_id || !isUuid(data.user_id)) {
+    const lookupError = new Error('profile user id could not be resolved.');
+    lookupError.code = 'missing_profile_user_id';
+    throw lookupError;
+  }
+
+  return data.user_id;
+}
+
 async function fetchAllLetters() {
   const response = await fetch(buildLettersEndpoint(), {
     headers: {
@@ -78,20 +119,21 @@ async function fetchAllLetters() {
   return letters;
 }
 
-export async function prepareDailyLetter(profileId) {
-  if (!profileId) {
+export async function prepareDailyLetter(profileIdentifier) {
+  if (!profileIdentifier) {
     const error = new Error('profile id is required.');
     error.code = 'missing_profile_id';
     throw error;
   }
 
+  const userId = await resolveUserId(profileIdentifier);
   const todayKstKey = toKstDateKey(new Date());
 
   const [{ data: history, error: historyError }, letters] = await Promise.all([
     supabase
       .from('user_letters')
       .select('letter_id, created_at')
-      .eq('user_id', profileId),
+      .eq('user_id', userId),
     fetchAllLetters(),
   ]);
 
@@ -126,7 +168,7 @@ export async function prepareDailyLetter(profileId) {
 
   const { error: insertError } = await supabase.from('user_letters').insert([
     {
-      user_id: profileId,
+      user_id: userId,
       letter_id: selectedLetter.id,
     },
   ]);
