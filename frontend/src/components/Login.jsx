@@ -62,7 +62,6 @@ async function insertProfile(user, profile) {
       specialty: profile.specialty,
       avatar_url: profile.avatar_url,
       created_at: now,
-      last_check_in_at: now,
       is_active: true,
     },
   ]);
@@ -81,6 +80,28 @@ async function fetchProfile(userId) {
   }
 
   return data;
+}
+
+async function fetchProfileWithRetry(userId, attempts = 4, delayMs = 250) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const profile = await fetchProfile(userId);
+
+    if (profile?.user_id) {
+      return profile;
+    }
+
+    if (attempt < attempts - 1) {
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, delayMs);
+      });
+    }
+  }
+
+  return null;
+}
+
+function isDuplicateProfileError(error) {
+  return error?.code === '23505';
 }
 
 function getDailyLetterErrorMessage(error) {
@@ -223,14 +244,12 @@ export default function Login() {
       const isFreshAuth = Boolean(pendingAuthFlow || hasAuthTokensInHash);
 
       if (!isFreshAuth) {
-        const fetchedProfile = await fetchProfile(user.id);
-        if (fetchedProfile) {
-          setProfile(fetchedProfile);
-        }
-
+        await supabase.auth.signOut();
+        setProfile(null);
         resetDailyLetterState();
-        setAppStage('home');
+        setAppStage('auth');
         setIsSuccess(null);
+        authProcessedRef.current = false;
         return;
       }
 
@@ -270,7 +289,7 @@ export default function Login() {
 
         const { error: insertError } = await insertProfile(user, profileToInsert);
 
-        if (insertError) {
+        if (insertError && !isDuplicateProfileError(insertError)) {
           console.error('Profile insert error:', insertError);
           clearPendingAuthFlow();
           setLoading(false);
@@ -298,7 +317,7 @@ export default function Login() {
         }
       }
 
-      const fetchedProfile = await fetchProfile(user.id);
+      const fetchedProfile = await fetchProfileWithRetry(user.id);
       if (!fetchedProfile?.user_id) {
         authProcessedRef.current = false;
         clearPendingAuthFlow();
@@ -308,6 +327,7 @@ export default function Login() {
       }
 
       setProfile(fetchedProfile);
+      window.history.replaceState(null, '', window.location.pathname);
       clearPendingAuthFlow();
       beginDailyLetterPreparation(fetchedProfile.user_id);
       setAppStage('auth');
@@ -434,7 +454,7 @@ export default function Login() {
     } = await supabase.auth.getSession();
 
     if (session?.user?.id) {
-      const fetchedProfile = await fetchProfile(session.user.id);
+      const fetchedProfile = await fetchProfileWithRetry(session.user.id);
 
       if (fetchedProfile?.user_id) {
         setProfile(fetchedProfile);
