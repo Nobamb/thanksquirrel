@@ -172,7 +172,7 @@ installHook.js:1 Daily letter preparation error: Object
 9. 이번에는 달램이가 1분마다 각기 다른 동작을 하는 모습을 추가해주었으면 해 기본 이미지를 사용을 하다가(character-web.webp) 1분마다 랜덤한 다른 동작을 하는 이미지를 보여주는거야, 일단 정해놓은 동작들이 도토리를 먹는 것, 그리고 나비랑 노는 것과 노래를 부르는 것이야, 1분이 지나면 약 10초동안 각각의 동작들을 해볼 것이고 이미지는 storage의 thanksquirrel-image 스토리지에서 가져오면 돼 우선 도토리를 먹을 때에는 1초 간격으로 이미지를 바꿔주면 돼 character-web-eat.webp, character-web-eat2.webp, character-web.webp 순으로 각각 순차적으로 바뀌게 보여주면 돼, 나비랑 놀 때는 8초동안 이미지를 보여줘야 해 character-enjoy.webp의 이미지를 보여주다가 남은 2초간은 나비에게 작별하는 이미지로 character-enjoy2.webp를 보여주면 돼, 그리고 노래를 부를 때에는 character-sing.webp, character-sing2.webp의 이미지를 1초 간격으로 순차적으로 보여주면 돼 그리고 동작을 할 때의 대사들도 있어야 하는데, speechBubble 컴포넌트를 가져와서 확인 버튼 같은 것 없이 대사만 있는 말풍선을 가져오고, 각 대사는 도토리를 먹을 때에는 "다람다람! 도토리는 정말 맛있습니다람!", 노래를 부를 때에는 "다람다람! 기분이 좋아서 노래 한곡 부르겠습니다람!", 나비랑 놀 때에는 "다람다람! 나비님! 언제나 참 아름답습니다람!", 나비가 떠나갈 때에는 "다람다람! 나비님! 자주 찾아와주셔서 감사합니다람!"이라는 대사를 할 수 있으면 해 자세한 내용은 GEMINI.md를 참고해주면 돼
 
 
-9-1. 일단 도토리 먹는 부분 있잖아.
+9-1. 일단 도토리 먹는 부분 있잖아. character-web.webp은 빼고 오로지 character-web-eat.webp, character-web-eat2.webp만 사용해서 1초 간격으로 순차적으로 바뀌게 보여주면 돼
 
 
 10. 이번에는 달램이와의 상호작용을 해보려고 하거든, 우선 
