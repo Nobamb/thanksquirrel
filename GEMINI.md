@@ -109,10 +109,10 @@ created_at (timestamptz): 편지를 받은 날짜와 시간입니다.
 다람다람! 너무 간지럽습니다람!
 
 달램이가 나비랑 놀게 될 때:
-다람다람! 나비가 참 아름답습니다람!
+다람다람! 나비님! 언제나 참 아름답습니다람!
 
 나비가 떠나갈 때:
-다람다람! 나비님 자주 찾아와주셔서 감사합니다람!
+다람다람! 나비님! 자주 찾아와주셔서 감사합니다람!
 
 달램이가 노래를 부를 때:
 다람다람!
@@ -159,8 +159,8 @@ character-sad2.webp(시무룩해하는 이미지)
 character-sing1.webp(노래하는 이미지1)
 character-sing2.webp(노래하는 이미지2)
 character-tickle.webp(간지러워하는 이미지)
-character-web-eat.webp(쓰다듬어주는 이미지)
-character-web-eat2.webp(쓰다듬어주는 이미지)
+character-web-eat.webp(도토리를 먹는 이미지1)
+character-web-eat2.webp(도토리를 먹는 이미지2)
 character-web.webp(기본 달램이 이미지)
 
 
