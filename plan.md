@@ -186,3 +186,5 @@ installHook.js:1 Daily letter preparation error: Object
 
 
 11. 이번에는 헤더의 편지 아이콘 있잖아, 그 부분 편지를 확인하기 전에 나타나는 닫혀있는 편지 svg를 사용해보면 좋을 것 같아, dairylettersequence.jsx 파일에 있는 편지 svg를 가져와서 크기만 기존의 편지 아이콘의 크기와 맞춰서 추가해주면 돼
+
+12. 이번에는 파비콘을 변경하려고 하거든, supabase storage의 thanksquirrel-webpage-image에서 가져올 것이고, favicon.png라는 이름의 파일을 가져와볼거야
