@@ -247,6 +247,27 @@ function LetterIcon() {
   );
 }
 
+function MusicOnIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor">
+      <path d="M9 18V6l12-2v12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="6" cy="18" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="18" cy="16" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function MusicOffIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 18V6l12-2v12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="6" cy="18" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="18" cy="16" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <line x1="3" y1="3" x2="21" y2="21" stroke="#e04b4b" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export default function AuthenticatedHome({ profile, onProfileUpdated }) {
   const [isLetterListOpen, setIsLetterListOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
@@ -254,6 +275,7 @@ export default function AuthenticatedHome({ profile, onProfileUpdated }) {
   const [isWithdrawConfirmOpen, setIsWithdrawConfirmOpen] = useState(false);
   const [withdrawError, setWithdrawError] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [isBgmPlaying, setIsBgmPlaying] = useState(false);
   const [characterFrame, setCharacterFrame] = useState({
     ...IDLE_FRAME,
     imageIndex: 0,
@@ -267,6 +289,7 @@ export default function AuthenticatedHome({ profile, onProfileUpdated }) {
   const pointerStateRef = useRef(null);
   const profileMenuRef = useRef(null);
   const profileButtonRef = useRef(null);
+  const bgmRef = useRef(null);
   const profileImageSrc = profile?.avatar_url || getWebpageImageUrl('character-icon.png');
   const displayName = profile?.nickname || profile?.email?.split('@')[0] || '고마운 친구';
 
@@ -452,6 +475,26 @@ export default function AuthenticatedHome({ profile, onProfileUpdated }) {
   }, []);
 
   useEffect(() => {
+    const audio = new Audio('/main-bgm.mp3');
+    audio.loop = true;
+    audio.volume = 0.45;
+    bgmRef.current = audio;
+
+    audio.play().then(() => {
+      setIsBgmPlaying(true);
+    }).catch(() => {
+      // 브라우저 자동재생 정책으로 차단된 경우 — 버튼으로 수동 재생 가능
+      setIsBgmPlaying(false);
+    });
+
+    return () => {
+      audio.pause();
+      audio.src = '';
+      bgmRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isProfileMenuOpen) {
       return undefined;
     }
@@ -569,6 +612,22 @@ export default function AuthenticatedHome({ profile, onProfileUpdated }) {
   const preventNativeDrag = useEffectEvent((event) => {
     event.preventDefault();
   });
+
+  const handleBgmToggle = () => {
+    const audio = bgmRef.current;
+
+    if (!audio) {
+      return;
+    }
+
+    if (isBgmPlaying) {
+      audio.pause();
+      setIsBgmPlaying(false);
+    } else {
+      audio.play().catch(() => {});
+      setIsBgmPlaying(true);
+    }
+  };
 
   const handleProfileMenuToggle = () => {
     setIsProfileMenuOpen((prev) => !prev);
@@ -701,6 +760,14 @@ export default function AuthenticatedHome({ profile, onProfileUpdated }) {
         </div>
 
         <div className="site-header__actions">
+          <button
+            type="button"
+            className="header-icon-button header-icon-button--bgm"
+            aria-label={isBgmPlaying ? '배경음악 끄기' : '배경음악 켜기'}
+            onClick={handleBgmToggle}
+          >
+            {isBgmPlaying ? <MusicOnIcon /> : <MusicOffIcon />}
+          </button>
           <button
             type="button"
             className="header-icon-button"

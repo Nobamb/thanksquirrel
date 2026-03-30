@@ -64,6 +64,11 @@
   height: 48px;
 }
 
+.header-icon-button--bgm svg {
+  width: 32px;
+  height: 32px;
+}
+
 .header-profile-button {
   overflow: hidden;
   padding: 0;
