@@ -147,7 +147,27 @@ export default function ProfileSettingsModal({
         <p className="profile-settings-subtitle">프로필 정보를 확인하고 수정할 수 있어요.</p>
 
         <div className="profile-settings-card">
-          <img src={avatarPreviewSrc} alt="" className="profile-settings-avatar" />
+          <label
+            htmlFor="profile-avatar"
+            className={`profile-settings-avatar-wrap ${loading ? 'is-disabled' : ''}`}
+            title="프로필 사진 변경"
+          >
+            <img src={avatarPreviewSrc} alt="" className="profile-settings-avatar" />
+            <div className="profile-settings-avatar-overlay" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+              </svg>
+            </div>
+            <input
+              id="profile-avatar"
+              className="profile-settings-file-input"
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              disabled={loading}
+            />
+          </label>
           <div className="profile-settings-meta">
             <strong>{formData.nickname.trim() || profile?.nickname || '다람이 친구'}</strong>
             <span>{profile?.email ?? ''}</span>
@@ -157,34 +177,6 @@ export default function ProfileSettingsModal({
         {error ? <div className="error-message main-error">{error}</div> : null}
 
         <form className="profile-settings-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <div className="input-group">
-              <label htmlFor="profile-avatar">프로필 이미지</label>
-              <div className="profile-settings-avatar-field">
-                <label
-                  htmlFor="profile-avatar"
-                  className={`profile-settings-upload-button ${loading ? 'is-disabled' : ''}`}
-                >
-                  이미지 선택
-                </label>
-                <input
-                  id="profile-avatar"
-                  className="profile-settings-file-input"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  disabled={loading}
-                />
-                <span className="profile-settings-file-name">
-                  {avatarFile?.name ?? '선택된 이미지가 없어요.'}
-                </span>
-              </div>
-              <p className="profile-settings-helper">
-                100KB를 넘는 이미지는 저장 전에 자동으로 압축됩니다.
-              </p>
-            </div>
-          </div>
-
           <div className="form-group row-group">
             <div className="input-group">
               <label htmlFor="profile-email">이메일</label>
