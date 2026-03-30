@@ -155,11 +155,12 @@ async function uploadProfileImage(userId, file) {
   const storageClient = supabase.storage.from(PROFILE_IMAGE_BUCKET);
   const { error: uploadError } = await storageClient.upload(filePath, preparedFile, {
     cacheControl: '3600',
-    upsert: false,
-    contentType: preparedFile.type || file.type || undefined,
+    upsert: true,
+    contentType: preparedFile.type || file.type || 'image/jpeg',
   });
 
   if (uploadError) {
+    console.error('Storage upload error details:', JSON.stringify(uploadError));
     throw uploadError;
   }
 
@@ -613,7 +614,8 @@ export default function AuthenticatedHome({ profile, onProfileUpdated }) {
         return '이미지를 100KB 이하로 맞추지 못했어요. 다른 이미지를 선택해 주세요.';
       }
 
-      return '프로필 이미지를 업로드하지 못했어요. 다시 시도해 주세요.';
+      const errMsg = uploadError?.message || uploadError?.error || String(uploadError);
+      return `프로필 이미지를 업로드하지 못했어요. (${errMsg}) 다시 시도해 주세요.`;
     }
 
     const { error } = await supabase
