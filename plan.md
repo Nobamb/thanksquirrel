@@ -173,4 +173,4 @@ installHook.js:1 Daily letter preparation error: Object
 
 취미, 특기, 성별, mbti, 별명, 프로필 이미지를 바꿀 수 있고, 프로필 이미지는 일단 storage에 저장이 되면서(profile_images 스토리지에 저장) 그 storage의 url을 유저 profile 데이터베이스에 avatar_url에서 변경해야 돼, 프로필로 지정한 사진의 용량이 만약에 100kb 초과라면 browser-image-compression를 통해서(https://github.com/DonaldTsai/browser-image-compression 직접 설치해서 사용해야 돼) 용량을 줄여서 저장을 해야돼, 그리고 프로필로 지정한 사진의 용량이 100kb 이하라면 그냥 저장을 하면 돼
 
-14-1(예정). 지금 마이페이지에서 프로필 사진을 업로드하면 "프로필 이미지를 업로드하지 못했어요. 다시 시도해 주세요."라는 오류 메세지가 뜨면서 제대로 이미지가 storage랑 profile table에 저장이 되지 않은 상황이야 profile_images 스토리지는 이미 만들어진 상태고, public도 걸어놓은 상태라서 다시 한번 제대로 storage랑 테이블에 이미지 url이 변경되면서 실제 프로필 사진도 변경되도록 수정해, 그리고 마이페이지 팝업에 닫기 버튼에는 "횞"이라는 이상한 단어가 적혀있어 이거를 그냥 "X"로 변경해
+14-1. 지금 마이페이지에서 프로필 사진을 업로드하면 "프로필 이미지를 업로드하지 못했어요. 다시 시도해 주세요."라는 오류 메세지가 뜨면서 제대로 이미지가 storage랑 profile table에 저장이 되지 않은 상황이야 profile_images 스토리지는 이미 만들어진 상태고, public도 걸어놓은 상태라서 다시 한번 제대로 storage랑 테이블에 이미지 url이 변경되면서 실제 프로필 사진도 변경되도록 수정해, 그리고 마이페이지 팝업에 닫기 버튼에는 "횞"이라는 이상한 단어가 적혀있어 이거를 그냥 "X"로 변경해
