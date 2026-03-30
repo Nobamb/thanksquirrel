@@ -13,7 +13,7 @@ const ACTION_DURATION_FRAMES = 10;
 const INTERACTION_DURATION_MS = 3_000;
 const ACORN_RETURN_WINDOW_MS = 5_000;
 const POINTER_DRAG_THRESHOLD_PX = 12;
-const PROFILE_IMAGE_BUCKET = 'profile_images';
+const PROFILE_IMAGE_BUCKET = 'profile-images';
 const PROFILE_IMAGE_MAX_BYTES = 100 * 1024;
 
 const EAT_IMAGES = ['character-web-eat.webp', 'character-web-eat2.webp'];
