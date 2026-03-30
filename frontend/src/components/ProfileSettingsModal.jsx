@@ -141,7 +141,7 @@ export default function ProfileSettingsModal({
           aria-label="닫기"
           disabled={loading}
         >
-          횞
+          X
         </button>
         <h2>마이페이지</h2>
         <p className="profile-settings-subtitle">프로필 정보를 확인하고 수정할 수 있어요.</p>
