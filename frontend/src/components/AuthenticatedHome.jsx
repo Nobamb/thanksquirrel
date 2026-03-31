@@ -762,7 +762,7 @@ export default function AuthenticatedHome({ profile, onProfileUpdated }) {
         <div className="site-header__actions">
           <button
             type="button"
-            className="header-icon-button header-icon-button--bgm"
+            className="header-icon-button header-icon-button--bgm desktop-only"
             aria-label={isBgmPlaying ? '배경음악 끄기' : '배경음악 켜기'}
             onClick={handleBgmToggle}
           >
@@ -770,7 +770,7 @@ export default function AuthenticatedHome({ profile, onProfileUpdated }) {
           </button>
           <button
             type="button"
-            className="header-icon-button"
+            className="header-icon-button desktop-only"
             aria-label="편지함"
             onClick={() => setIsLetterListOpen(true)}
           >
@@ -779,7 +779,7 @@ export default function AuthenticatedHome({ profile, onProfileUpdated }) {
           <button
             type="button"
             className="header-profile-button"
-            aria-label={`${displayName} 프로필`}
+            aria-label={`${displayName} 메뉴`}
             ref={profileButtonRef}
             onClick={handleProfileMenuToggle}
           >
@@ -789,6 +789,23 @@ export default function AuthenticatedHome({ profile, onProfileUpdated }) {
 
           {isProfileMenuOpen ? (
             <div className="profile-menu" ref={profileMenuRef}>
+              <button
+                type="button"
+                className="profile-menu__item mobile-only-menu-item"
+                onClick={handleBgmToggle}
+              >
+                배경음악 {isBgmPlaying ? '끄기' : '켜기'}
+              </button>
+              <button
+                type="button"
+                className="profile-menu__item mobile-only-menu-item"
+                onClick={() => {
+                  setIsProfileMenuOpen(false);
+                  setIsLetterListOpen(true);
+                }}
+              >
+                편지함
+              </button>
               <button
                 type="button"
                 className="profile-menu__item"
