@@ -783,7 +783,8 @@ export default function AuthenticatedHome({ profile, onProfileUpdated }) {
             ref={profileButtonRef}
             onClick={handleProfileMenuToggle}
           >
-            <img src={profileImageSrc} alt="" />
+            <img src={profileImageSrc} alt="" className="profile-img-desktop" />
+            <img src={getImageUrl('acorn.webp')} alt="" className="profile-img-mobile" />
           </button>
 
           {isProfileMenuOpen ? (
