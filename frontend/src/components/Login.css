@@ -255,8 +255,8 @@
   position: absolute;
   bottom: -400px;
   left: 50%;
-  width: 320px; /* 더 큰 다람쥐로 교체되었으므로 상체까지 보일 수 있도록 넉넉하게 설정 */
-  margin-left: -160px;
+  width: 288px; /* 더 큰 다람쥐로 교체되었으므로 상체까지 보일 수 있도록 넉넉하게 설정 -> 기존 320px에서 반응형을 고려해 10% 축소 */
+  margin-left: -144px;
   animation: slideUpFromBottom 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   animation-delay: 0.3s;
 }
@@ -278,5 +278,32 @@
   to {
     bottom: -320px;
     opacity: 0;
+  }
+}
+
+/* --------------------------------- */
+/* RESPONSIVE DESIGN                 */
+/* --------------------------------- */
+
+@media (max-width: 768px) {
+  .login-box {
+    margin-top: 65px;
+  }
+
+  .form-container {
+    padding: 28px 20px;
+    gap: 16px;
+  }
+
+  .form-container h2 {
+    font-size: 24px;
+  }
+
+  .squirrel-img {
+    width: 130px;
+  }
+
+  .squirrel-container {
+    top: -100px;
   }
 }

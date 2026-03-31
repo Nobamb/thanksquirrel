@@ -37,8 +37,8 @@
 
 /* 새로 추가된 large 배경 및 크기 규칙 */
 .speech-bubble.large {
-  width: 400px;
-  height: 250px;
+  width: 360px;
+  height: 225px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
